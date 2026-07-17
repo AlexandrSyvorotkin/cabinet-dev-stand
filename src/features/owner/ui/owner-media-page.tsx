@@ -90,6 +90,7 @@ const OwnerMediaPage = () => {
                         onSendToModeration={
                           tab.value === 'created' ? handleSendToModeration : undefined
                         }
+                        canEdit={tab.value === 'created'}
                       />
                     ))}
                   </Stack>

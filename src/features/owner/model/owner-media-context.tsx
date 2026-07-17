@@ -11,6 +11,7 @@ type OwnerMediaContextValue = {
   mediaItems: OwnerMediaItem[];
   countsByTab: Record<OwnerMediaTabValue, number>;
   addMediaItem: (values: AddMediaFormValues) => void;
+  updateMediaItem: (id: number, values: AddMediaFormValues) => void;
   sendToModeration: (item: OwnerMediaItem) => void;
 };
 
@@ -33,6 +34,12 @@ const OwnerMediaProvider = ({ children }: { children: ReactNode }) => {
     setMediaItems((current) => [...current, createMediaItem(values)]);
   };
 
+  const updateMediaItem = (id: number, values: AddMediaFormValues) => {
+    setMediaItems((current) =>
+      current.map((media) => (media.id === id ? { ...media, data: values } : media)),
+    );
+  };
+
   const sendToModeration = (item: OwnerMediaItem) => {
     setMediaItems((current) =>
       current.map((media) =>
@@ -52,6 +59,7 @@ const OwnerMediaProvider = ({ children }: { children: ReactNode }) => {
       mediaItems,
       countsByTab,
       addMediaItem,
+      updateMediaItem,
       sendToModeration,
     }),
     [mediaItems, countsByTab],

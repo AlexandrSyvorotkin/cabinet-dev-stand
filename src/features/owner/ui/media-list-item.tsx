@@ -1,4 +1,5 @@
 import { Button, Group, Paper, Stack, Text } from '@mantine/core';
+import { Link } from '@tanstack/react-router';
 import type { OwnerMediaItem } from '../model/media';
 import { MediaPricingSummaryView } from './media-pricing-summary';
 
@@ -6,10 +7,12 @@ type MediaListItemProps = {
   item: OwnerMediaItem;
   index: number;
   onSendToModeration?: (item: OwnerMediaItem) => void;
+  canEdit?: boolean;
 };
 
-const MediaListItem = ({ item, index, onSendToModeration }: MediaListItemProps) => {
+const MediaListItem = ({ item, index, onSendToModeration, canEdit }: MediaListItemProps) => {
   const { data } = item;
+  const showActions = item.tab === 'created' && (onSendToModeration || canEdit);
 
   return (
     <Paper withBorder p="md" radius="md">
@@ -33,10 +36,25 @@ const MediaListItem = ({ item, index, onSendToModeration }: MediaListItemProps) 
             </Text>
           </Stack>
 
-          {item.tab === 'created' && onSendToModeration ? (
-            <Button onClick={() => onSendToModeration(item)}>
-              Отправить на модерацию
-            </Button>
+          {showActions ? (
+            <Stack gap="xs" align="stretch">
+              {onSendToModeration ? (
+                <Button onClick={() => onSendToModeration(item)}>
+                  Отправить на модерацию
+                </Button>
+              ) : null}
+              {canEdit ? (
+                <Link
+                  to="/owner/media/$mediaId/edit"
+                  params={{ mediaId: String(item.id) }}
+                  style={{ textDecoration: 'none' }}
+                >
+                  <Button variant="default" fullWidth>
+                    Редактировать
+                  </Button>
+                </Link>
+              ) : null}
+            </Stack>
           ) : null}
         </Group>
 

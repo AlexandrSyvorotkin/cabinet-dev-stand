@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { MOCK_ACTIVE_MEDIA } from '../mock/media';
 import {
   createMediaItem,
   OWNER_MEDIA_TABS,
@@ -13,12 +14,13 @@ type OwnerMediaContextValue = {
   addMediaItem: (values: AddMediaFormValues) => void;
   updateMediaItem: (id: number, values: AddMediaFormValues) => void;
   sendToModeration: (item: OwnerMediaItem) => void;
+  deleteMediaItem: (id: number) => void;
 };
 
 const OwnerMediaContext = createContext<OwnerMediaContextValue | null>(null);
 
 const OwnerMediaProvider = ({ children }: { children: ReactNode }) => {
-  const [mediaItems, setMediaItems] = useState<OwnerMediaItem[]>([]);
+  const [mediaItems, setMediaItems] = useState<OwnerMediaItem[]>(() => [...MOCK_ACTIVE_MEDIA]);
 
   const countsByTab = useMemo(() => {
     return OWNER_MEDIA_TABS.reduce(
@@ -54,6 +56,10 @@ const OwnerMediaProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
+  const deleteMediaItem = (id: number) => {
+    setMediaItems((current) => current.filter((media) => media.id !== id));
+  };
+
   const value = useMemo(
     () => ({
       mediaItems,
@@ -61,6 +67,7 @@ const OwnerMediaProvider = ({ children }: { children: ReactNode }) => {
       addMediaItem,
       updateMediaItem,
       sendToModeration,
+      deleteMediaItem,
     }),
     [mediaItems, countsByTab],
   );

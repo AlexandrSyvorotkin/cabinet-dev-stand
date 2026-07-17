@@ -21,11 +21,19 @@ import { ROUTES } from '@/shared/model';
 
 const OwnerMediaPage = () => {
   const [activeTab, setActiveTab] = useState<OwnerMediaTabValue>('created');
-  const { mediaItems, countsByTab, sendToModeration } = useOwnerMedia();
+  const { mediaItems, countsByTab, sendToModeration, deleteMediaItem } = useOwnerMedia();
 
   const handleSendToModeration = (item: OwnerMediaItem) => {
     sendToModeration(item);
     setActiveTab('moderation');
+  };
+
+  const handleDelete = (item: OwnerMediaItem) => {
+    const name = item.data.name || 'Без названия';
+
+    if (window.confirm(`Удалить СМИ «${name}»? Это действие нельзя отменить.`)) {
+      deleteMediaItem(item.id);
+    }
   };
 
   return (
@@ -90,6 +98,7 @@ const OwnerMediaPage = () => {
                         onSendToModeration={
                           tab.value === 'created' ? handleSendToModeration : undefined
                         }
+                        onDelete={handleDelete}
                         canEdit={tab.value === 'created'}
                       />
                     ))}

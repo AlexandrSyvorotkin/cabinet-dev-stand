@@ -1,5 +1,6 @@
 import { Button, Group, Stack, Title } from '@mantine/core';
 import { Link, useNavigate } from '@tanstack/react-router';
+import { serializeCreateMediaPayload } from '../model/add-media-form';
 import { useOwnerMedia } from '../model/owner-media-context';
 import { MediaForm } from './media-form';
 import { useAddMediaForm } from './use-add-media-form';
@@ -16,7 +17,8 @@ const AddMediaPage = () => {
   } = useAddMediaForm();
 
   const handleSubmit = () => {
-    console.log('[CreateMedia] payload:', values);
+    const payload = serializeCreateMediaPayload(values);
+    console.log('[CreateMedia] payload:', payload);
     addMediaItem(values);
     navigate({ to: ROUTES.OWNER_MEDIA });
   };

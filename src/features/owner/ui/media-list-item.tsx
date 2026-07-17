@@ -7,12 +7,14 @@ type MediaListItemProps = {
   item: OwnerMediaItem;
   index: number;
   onSendToModeration?: (item: OwnerMediaItem) => void;
+  onDelete?: (item: OwnerMediaItem) => void;
   canEdit?: boolean;
 };
 
-const MediaListItem = ({ item, index, onSendToModeration, canEdit }: MediaListItemProps) => {
+const MediaListItem = ({ item, index, onSendToModeration, onDelete, canEdit }: MediaListItemProps) => {
   const { data } = item;
-  const showActions = item.tab === 'created' && (onSendToModeration || canEdit);
+  const showCreatedActions = item.tab === 'created' && (onSendToModeration || canEdit);
+  const showActions = showCreatedActions || Boolean(onDelete);
 
   return (
     <Paper withBorder p="md" radius="md">
@@ -53,6 +55,11 @@ const MediaListItem = ({ item, index, onSendToModeration, canEdit }: MediaListIt
                     Редактировать
                   </Button>
                 </Link>
+              ) : null}
+              {onDelete ? (
+                <Button color="red" variant="subtle" onClick={() => onDelete(item)}>
+                  Удалить
+                </Button>
               ) : null}
             </Stack>
           ) : null}

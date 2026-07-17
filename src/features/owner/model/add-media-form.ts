@@ -1,5 +1,5 @@
 import type { BasicServicesState } from './basic-services';
-import { createEmptyBasicServices } from './basic-services';
+import { createEmptyBasicServices, type BasicServiceItemConfig } from './basic-services';
 import { createEmptyPricingRules, type PricingRules } from './pricing';
 import {
   createEmptySocialNetworks,
@@ -62,6 +62,44 @@ export type AddMediaFormValues = {
   pricingRules: PricingRules;
   basicServices: BasicServicesState;
   socialNetworks: SocialNetworksValues;
+};
+
+export type MediaBasicServicePayload = BasicServiceItemConfig & {
+  maxChars: string;
+  headlineLimit: string;
+  price: string;
+  availableForDiscount: boolean;
+  availableForBonus: boolean;
+};
+
+export type CreateMediaPayload = Omit<AddMediaFormValues, 'basicServices'> & {
+  basicServices: MediaBasicServicePayload[];
+};
+
+export const serializeCreateMediaPayload = (values: AddMediaFormValues): CreateMediaPayload => {
+  const { basicServices, ...rest } = values;
+
+  return {
+    ...rest,
+    basicServices: basicServices.items.map((item) => {
+      const row = basicServices.values[item.id] ?? {
+        maxChars: '',
+        headlineLimit: '',
+        price: '',
+        bonus: false,
+        discount: false,
+      };
+
+      return {
+        ...item,
+        maxChars: row.maxChars,
+        headlineLimit: row.headlineLimit,
+        price: row.price,
+        availableForDiscount: row.discount,
+        availableForBonus: row.bonus,
+      };
+    }),
+  };
 };
 
 export const MEDIA_REGIONS = [

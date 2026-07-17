@@ -22,12 +22,18 @@ import {
 type BasicServicesTableProps = {
   values: BasicServicesState;
   onChange: (values: BasicServicesState) => void;
-  agencyDiscount?: AgencyDiscount;
+  agencyDiscount: AgencyDiscount;
+  onAgencyDiscountChange: (agencyDiscount: AgencyDiscount) => void;
 };
 
 const formatAmount = (value: number): string => value.toLocaleString('ru-RU');
 
-const BasicServicesTable = ({ values, onChange, agencyDiscount }: BasicServicesTableProps) => {
+const BasicServicesTable = ({
+  values,
+  onChange,
+  agencyDiscount,
+  onAgencyDiscountChange,
+}: BasicServicesTableProps) => {
   const updateRow = (id: string, patch: Partial<BasicServicesState['values'][string]>) => {
     onChange({
       ...values,
@@ -251,6 +257,45 @@ const BasicServicesTable = ({ values, onChange, agencyDiscount }: BasicServicesT
           addAriaLabel: 'Добавить соцсеть',
         },
       ]}
+      footer={
+        <Stack gap="xs">
+          <Group align="center" wrap="wrap" gap="lg">
+            <Checkbox
+              label="Применять скидку агентству"
+              checked={agencyDiscount.enabled}
+              onChange={(event) =>
+                onAgencyDiscountChange({
+                  ...agencyDiscount,
+                  enabled: event.currentTarget.checked,
+                })
+              }
+            />
+            <Group align="center" gap="xs" wrap="nowrap">
+              <Text size="sm" fw={500}>
+                Процент
+              </Text>
+              <NumberInput
+                suffix="%"
+                value={agencyDiscount.percent}
+                onChange={(value) =>
+                  onAgencyDiscountChange({
+                    ...agencyDiscount,
+                    percent: Number(value) || 0,
+                  })
+                }
+                min={0}
+                max={100}
+                disabled={!agencyDiscount.enabled}
+                w={120}
+                aria-label="Процент скидки агентству"
+              />
+            </Group>
+          </Group>
+          <Text size="xs" c="dimmed">
+            Уменьшает все цены из таблицы базовых услуг на указанный процент.
+          </Text>
+        </Stack>
+      }
     />
   );
 };

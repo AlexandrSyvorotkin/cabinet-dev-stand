@@ -19,6 +19,7 @@ type DataTableProps<T> = {
   columns: DataTableColumn<T>[];
   sections: DataTableSection<T>[];
   getRowKey: (row: T) => string | number;
+  footer?: ReactNode;
 };
 
 const PlusIcon = () => (
@@ -36,6 +37,7 @@ const DataTable = <T,>({
   columns,
   sections,
   getRowKey,
+  footer,
 }: DataTableProps<T>) => {
   return (
     <Table withTableBorder withColumnBorders striped highlightOnHover>
@@ -87,6 +89,14 @@ const DataTable = <T,>({
             ) : null}
           </Fragment>
         ))}
+
+        {footer ? (
+          <Table.Tr>
+            <Table.Td colSpan={columns.length} p="md" bg="gray.0">
+              {footer}
+            </Table.Td>
+          </Table.Tr>
+        ) : null}
       </Table.Tbody>
     </Table>
   );

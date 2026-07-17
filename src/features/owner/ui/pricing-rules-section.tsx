@@ -397,51 +397,6 @@ const PricingModifiersSection = ({ rules, onRulesChange }: PricingRulesBaseProps
   return (
     <Stack gap="lg">
       <Stack gap="md">
-        <Stack gap={4}>
-          <Title order={5}>Скидка агентству</Title>
-          <Text size="sm" c="dimmed">
-            Уменьшает все цены из таблицы базовых услуг на указанный процент.
-          </Text>
-        </Stack>
-        <Group align="center" wrap="wrap" gap="lg">
-          <Checkbox
-            label="Применять скидку агентству"
-            checked={rules.agencyDiscount.enabled}
-            onChange={(event) =>
-              updateRules({
-                agencyDiscount: {
-                  ...rules.agencyDiscount,
-                  enabled: event.currentTarget.checked,
-                },
-              })
-            }
-          />
-          <Group align="center" gap="xs" wrap="nowrap">
-            <Text size="sm" fw={500}>
-              Процент
-            </Text>
-            <NumberInput
-              suffix="%"
-              value={rules.agencyDiscount.percent}
-              onChange={(value) =>
-                updateRules({
-                  agencyDiscount: {
-                    ...rules.agencyDiscount,
-                    percent: Number(value) || 0,
-                  },
-                })
-              }
-              min={0}
-              max={100}
-              disabled={!rules.agencyDiscount.enabled}
-              w={120}
-              aria-label="Процент"
-            />
-          </Group>
-        </Group>
-      </Stack>
-
-      <Stack gap="md">
         <Group justify="space-between" align="center">
           <Title order={5}>Доп. услуги</Title>
           <Button

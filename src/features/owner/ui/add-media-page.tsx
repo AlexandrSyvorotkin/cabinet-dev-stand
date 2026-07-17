@@ -95,6 +95,12 @@ const AddMediaPage = () => {
               values={values.basicServices}
               onChange={handleBasicServicesChange}
               agencyDiscount={values.pricingRules.agencyDiscount}
+              onAgencyDiscountChange={(agencyDiscount) =>
+                handlePricingRulesChange({
+                  ...values.pricingRules,
+                  agencyDiscount,
+                })
+              }
             />
           </Stack>
 

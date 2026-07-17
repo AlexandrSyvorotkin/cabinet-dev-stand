@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
-import { MOCK_ACTIVE_MEDIA } from '../mock/media';
+import { MOCK_OWNER_MEDIA } from '../mock/media';
 import {
   createMediaItem,
   OWNER_MEDIA_TABS,
@@ -13,14 +13,16 @@ type OwnerMediaContextValue = {
   countsByTab: Record<OwnerMediaTabValue, number>;
   addMediaItem: (values: AddMediaFormValues) => void;
   updateMediaItem: (id: number, values: AddMediaFormValues) => void;
-  sendToModeration: (item: OwnerMediaItem) => void;
   deleteMediaItem: (id: number) => void;
+  sendToModeration: (item: OwnerMediaItem) => void;
 };
 
 const OwnerMediaContext = createContext<OwnerMediaContextValue | null>(null);
 
 const OwnerMediaProvider = ({ children }: { children: ReactNode }) => {
-  const [mediaItems, setMediaItems] = useState<OwnerMediaItem[]>(() => [...MOCK_ACTIVE_MEDIA]);
+  const [mediaItems, setMediaItems] = useState<OwnerMediaItem[]>(() =>
+    structuredClone(MOCK_OWNER_MEDIA),
+  );
 
   const countsByTab = useMemo(() => {
     return OWNER_MEDIA_TABS.reduce(
@@ -42,6 +44,10 @@ const OwnerMediaProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
+  const deleteMediaItem = (id: number) => {
+    setMediaItems((current) => current.filter((media) => media.id !== id));
+  };
+
   const sendToModeration = (item: OwnerMediaItem) => {
     setMediaItems((current) =>
       current.map((media) =>
@@ -56,18 +62,14 @@ const OwnerMediaProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
-  const deleteMediaItem = (id: number) => {
-    setMediaItems((current) => current.filter((media) => media.id !== id));
-  };
-
   const value = useMemo(
     () => ({
       mediaItems,
       countsByTab,
       addMediaItem,
       updateMediaItem,
-      sendToModeration,
       deleteMediaItem,
+      sendToModeration,
     }),
     [mediaItems, countsByTab],
   );

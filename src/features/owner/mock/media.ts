@@ -1,186 +1,296 @@
 import {
-  createEmptyBasicServices,
-  type BasicServicesState,
-  type BasicServiceRowValues,
-} from '../model/basic-services';
-import {
-  createEmptyPricingRules,
-  type PricingRules,
-  type ServicePackage,
-} from '../model/pricing';
-import { EMPTY_ADD_MEDIA_FORM, type AddMediaFormValues } from '../model/add-media-form';
-import type { OwnerMediaItem } from '../model/media';
+  EMPTY_ADD_MEDIA_FORM,
+  type AddMediaFormValues,
+} from '../model/add-media-form';
+import type { BasicServiceRowValues } from '../model/basic-services';
+import { createMediaItem, type OwnerMediaItem } from '../model/media';
+import type { SocialNetworksValues } from '../model/social-networks';
 
-const cloneFormValues = (values: AddMediaFormValues): AddMediaFormValues =>
-  structuredClone(values);
+const cloneForm = (): AddMediaFormValues => structuredClone(EMPTY_ADD_MEDIA_FORM);
 
-const patchBasicServices = (
-  basicServices: BasicServicesState,
+const patchBasicServiceRows = (
+  form: AddMediaFormValues,
   patches: Record<string, Partial<BasicServiceRowValues>>,
-): BasicServicesState => {
-  const values = { ...basicServices.values };
-
-  for (const [id, patch] of Object.entries(patches)) {
-    if (values[id]) {
-      values[id] = { ...values[id], ...patch };
-    }
-  }
-
-  return { ...basicServices, values };
-};
-
-const createMockPricingRules = (
-  servicePackages: ServicePackage[],
-  extras?: Partial<Omit<PricingRules, 'servicePackages'>>,
-): PricingRules => ({
-  ...createEmptyPricingRules(),
-  ...extras,
-  servicePackages,
-});
-
-const createMockActiveMedia = (
-  id: number,
-  overrides: Partial<AddMediaFormValues> & Pick<AddMediaFormValues, 'name' | 'url'>,
-): OwnerMediaItem => ({
-  id,
-  tab: 'active',
-  statusLabel: 'Активно',
-  data: {
-    ...cloneFormValues(EMPTY_ADD_MEDIA_FORM),
-    ...overrides,
+): AddMediaFormValues => ({
+  ...form,
+  basicServices: {
+    ...form.basicServices,
+    values: Object.fromEntries(
+      Object.entries(form.basicServices.values).map(([id, row]) => [
+        id,
+        { ...row, ...(patches[id] ?? {}) },
+      ]),
+    ),
   },
 });
 
-const MOCK_ACTIVE_MEDIA: OwnerMediaItem[] = [
-  createMockActiveMedia(1001, {
-    name: 'MKset.ru',
-    url: 'https://mkset.ru',
-    region: 'Пермский край',
+const patchSocialNetworks = (
+  form: AddMediaFormValues,
+  patch: Partial<SocialNetworksValues> & {
+    platforms?: Record<string, { reachOrSubscribers: string; link: string }>;
+  },
+): AddMediaFormValues => ({
+  ...form,
+  socialNetworks: {
+    ...form.socialNetworks,
+    ...patch,
+    platforms: {
+      ...form.socialNetworks.platforms,
+      ...(patch.platforms ?? {}),
+    },
+  },
+});
+
+const createAltaiInfoForm = (): AddMediaFormValues => {
+  let form = cloneForm();
+
+  form = {
+    ...form,
+    name: 'Алтай-инфо',
+    url: 'https://altai-info.ru',
+    region: 'Республика Алтай',
     coverage: 'Региональное',
-    trafficReach: '120 000',
-    yandexSearch: true,
-    googleSearch: true,
-    hasErid: true,
-    eridToken: '2VtzqwXXXX',
-    reportsEnabled: true,
-    validityPeriod: '12 месяцев',
-    basicServices: patchBasicServices(createEmptyBasicServices(), {
-      article: { discount: true },
-      interview: { discount: true },
-      telegram: { discount: true, bonus: true },
-    }),
-    pricingRules: createMockPricingRules(
-      [
+    trafficReach: '45 000 в месяц',
+    pricingRules: {
+      agencyDiscount: { enabled: true, percent: 15 },
+      addons: [
         {
-          id: 'pkg-mkset-discount',
-          name: 'Комбо размещение',
+          id: 'mock-addon-erid',
+          name: 'Оформление ERID',
+          price: '1500',
+          enabled: true,
+        },
+      ],
+      servicePackages: [
+        {
+          id: 'mock-pkg-discount-1',
+          name: 'Пакет услуг 1',
           kind: 'discount',
           minCount: 2,
-          baseServiceKeys: ['news'],
-          serviceKeys: ['article', 'interview'],
-          percent: 15,
+          baseServiceKeys: ['telegram'],
+          serviceKeys: ['odnoklassniki', 'max'],
+          percent: 70,
           bonusServiceKeys: [],
         },
         {
-          id: 'pkg-mkset-bonus',
-          name: 'Соцсети в подарок',
+          id: 'mock-pkg-bonus-1',
+          name: 'Пакет услуг 2',
           kind: 'bonus',
           minCount: 2,
+          baseServiceKeys: [],
+          serviceKeys: ['interview'],
+          percent: 0,
+          bonusServiceKeys: ['vk', 'odnoklassniki'],
+        },
+      ],
+    },
+  };
+
+  form = patchBasicServiceRows(form, {
+    news: { discount: true, bonus: false },
+    article: { discount: true, bonus: true },
+    interview: { discount: true, bonus: true },
+    specialProject: { discount: false, bonus: false },
+    telegram: { discount: true, bonus: true },
+    vk: { discount: true, bonus: true },
+    odnoklassniki: { discount: true, bonus: true },
+    max: { discount: true, bonus: false },
+  });
+
+  return patchSocialNetworks(form, {
+    photo: true,
+    video: false,
+    platforms: {
+      telegram: { reachOrSubscribers: '18 500', link: 'https://t.me/altai_info' },
+      vk: { reachOrSubscribers: '12 000', link: 'https://vk.com/altai_info' },
+      odnoklassniki: { reachOrSubscribers: '6 400', link: 'https://ok.ru/altai_info' },
+      max: { reachOrSubscribers: '3 200', link: 'https://max.ru/altai_info' },
+    },
+  });
+};
+
+const createPermGazetaForm = (): AddMediaFormValues => {
+  let form = cloneForm();
+
+  form = {
+    ...form,
+    name: 'Пермская газета',
+    url: 'https://perm-gazeta.ru',
+    region: 'Пермский край',
+    coverage: 'Региональное',
+    trafficReach: '120 000 в месяц',
+    pricingRules: {
+      agencyDiscount: { enabled: false, percent: 10 },
+      addons: [
+        {
+          id: 'mock-addon-erid-2',
+          name: 'Оформление ERID',
+          price: '1500',
+          enabled: false,
+        },
+      ],
+      servicePackages: [
+        {
+          id: 'mock-pkg-bonus-2',
+          name: 'Бонус за объём',
+          kind: 'bonus',
+          minCount: 3,
           baseServiceKeys: [],
           serviceKeys: ['news', 'article'],
           percent: 0,
           bonusServiceKeys: ['telegram'],
         },
       ],
-      {
-        agencyDiscount: { enabled: true, percent: 10 },
-        addons: [
-          {
-            id: 'addon-mkset-erid',
-            name: 'Оформление ERID',
-            price: '1500',
-            enabled: true,
-          },
-        ],
-      },
-    ),
-  }),
-  createMockActiveMedia(1002, {
-    name: '59.ru',
-    url: 'https://59.ru',
-    region: 'Пермский край',
-    coverage: 'Региональное',
-    trafficReach: '85 000',
-    yandexSearch: true,
-    googleSearch: false,
-    hasErid: true,
-    eridToken: '2VtzqwYYYY',
-    reportsEnabled: false,
-    validityPeriod: '6 месяцев',
-    basicServices: patchBasicServices(createEmptyBasicServices(), {
-      article: { discount: true },
-      telegram: { discount: true },
-      vk: { discount: true },
-    }),
-    pricingRules: createMockPricingRules([
-      {
-        id: 'pkg-59-discount',
-        name: 'PR-волна',
-        kind: 'discount',
-        minCount: 2,
-        baseServiceKeys: ['news'],
-        serviceKeys: ['article', 'telegram', 'vk'],
-        percent: 10,
-        bonusServiceKeys: [],
-      },
-    ]),
-  }),
-  createMockActiveMedia(1003, {
-    name: 'Коммерсантъ',
-    url: 'https://kommersant.ru',
+    },
+  };
+
+  form = patchBasicServiceRows(form, {
+    news: { price: '7500', discount: true, bonus: true },
+    article: { price: '22000', discount: true, bonus: true },
+    interview: { price: '32000', discount: false, bonus: true },
+    telegram: { price: '4800', discount: true, bonus: true },
+    vk: { price: '4200', discount: true, bonus: false },
+  });
+
+  return patchSocialNetworks(form, {
+    photo: false,
+    video: true,
+    platforms: {
+      telegram: { reachOrSubscribers: '25 000', link: 'https://t.me/perm_gazeta' },
+      vk: { reachOrSubscribers: '31 000', link: 'https://vk.com/perm_gazeta' },
+    },
+  });
+};
+
+const createMoscow24Form = (): AddMediaFormValues => {
+  let form = cloneForm();
+
+  form = {
+    ...form,
+    name: 'Москва 24',
+    url: 'https://moscow24.ru',
     region: 'Москва',
     coverage: 'Федеральное',
-    trafficReach: '2 500 000',
-    yandexSearch: true,
-    googleSearch: true,
-    hasErid: true,
-    eridToken: '2VtzqwZZZZ',
-    reportsEnabled: true,
-    validityPeriod: '12 месяцев',
-    basicServices: patchBasicServices(createEmptyBasicServices(), {
-      interview: { discount: true },
-      specialProject: { discount: true },
-      telegram: { bonus: true },
-      vk: { bonus: true },
-    }),
-    pricingRules: createMockPricingRules(
-      [
+    trafficReach: '2 500 000 в месяц',
+    pricingRules: {
+      agencyDiscount: { enabled: true, percent: 20 },
+      addons: [
         {
-          id: 'pkg-kommersant-discount',
-          name: 'Федеральный пакет',
-          kind: 'discount',
-          minCount: 2,
-          baseServiceKeys: ['article'],
-          serviceKeys: ['interview', 'specialProject'],
-          percent: 20,
-          bonusServiceKeys: [],
+          id: 'mock-addon-erid-3',
+          name: 'Оформление ERID',
+          price: '2000',
+          enabled: true,
         },
         {
-          id: 'pkg-kommersant-bonus',
-          name: 'Мультиканал',
-          kind: 'bonus',
-          minCount: 2,
-          baseServiceKeys: [],
-          serviceKeys: ['article', 'interview'],
-          percent: 0,
-          bonusServiceKeys: ['telegram', 'vk'],
+          id: 'mock-addon-photo',
+          name: 'Фотосъёмка',
+          price: '8000',
+          enabled: true,
         },
       ],
-      {
-        agencyDiscount: { enabled: true, percent: 15 },
-      },
-    ),
+      servicePackages: [
+        {
+          id: 'mock-pkg-discount-3',
+          name: 'Скидка на соцсети',
+          kind: 'discount',
+          minCount: 2,
+          baseServiceKeys: ['news'],
+          serviceKeys: ['telegram', 'vk', 'odnoklassniki'],
+          percent: 50,
+          bonusServiceKeys: [],
+        },
+      ],
+    },
+  };
+
+  form = patchBasicServiceRows(form, {
+    news: { price: '15000', discount: true, bonus: false },
+    article: { price: '45000', discount: true, bonus: false },
+    interview: { price: '60000', discount: true, bonus: true },
+    specialProject: { price: '250000', discount: false, bonus: false },
+    telegram: { price: '12000', discount: true, bonus: false },
+    vk: { price: '10000', discount: true, bonus: false },
+    odnoklassniki: { price: '9000', discount: true, bonus: false },
+    max: { price: '9000', discount: true, bonus: false },
+  });
+
+  return patchSocialNetworks(form, {
+    photo: true,
+    video: true,
+    platforms: {
+      telegram: { reachOrSubscribers: '890 000', link: 'https://t.me/moscow24' },
+      vk: { reachOrSubscribers: '1 200 000', link: 'https://vk.com/moscow24' },
+      odnoklassniki: { reachOrSubscribers: '340 000', link: 'https://ok.ru/moscow24' },
+      max: { reachOrSubscribers: '150 000', link: 'https://max.ru/moscow24' },
+    },
+  });
+};
+
+const createFederalPortalForm = (): AddMediaFormValues => {
+  let form = cloneForm();
+
+  form = {
+    ...form,
+    name: 'Федеральный аналитический портал',
+    url: 'https://federal-analytics.ru',
+    region: 'Санкт-Петербург',
+    coverage: 'Международное',
+    trafficReach: '800 000 в месяц',
+    reportsEnabled: true,
+    validityPeriod: '12 месяцев',
+    pricingRules: {
+      agencyDiscount: { enabled: true, percent: 12 },
+      addons: [
+        {
+          id: 'mock-addon-erid-4',
+          name: 'Оформление ERID',
+          price: '1500',
+          enabled: false,
+        },
+      ],
+      servicePackages: [],
+    },
+  };
+
+  form = patchBasicServiceRows(form, {
+    news: { price: '12000', discount: true, bonus: true },
+    article: { price: '35000', discount: true, bonus: true },
+    interview: { price: '50000', discount: true, bonus: true },
+    telegram: { price: '8000', discount: true, bonus: true },
+    vk: { price: '7000', discount: true, bonus: true },
+  });
+
+  return patchSocialNetworks(form, {
+    photo: true,
+    video: true,
+    platforms: {
+      telegram: { reachOrSubscribers: '210 000', link: 'https://t.me/federal_analytics' },
+      vk: { reachOrSubscribers: '180 000', link: 'https://vk.com/federal_analytics' },
+    },
+  });
+};
+
+const MOCK_OWNER_MEDIA: OwnerMediaItem[] = [
+  createMediaItem(createAltaiInfoForm(), {
+    id: 1001,
+    tab: 'created',
+    statusLabel: 'Создано',
+  }),
+  createMediaItem(createPermGazetaForm(), {
+    id: 1002,
+    tab: 'created',
+    statusLabel: 'Создано',
+  }),
+  createMediaItem(createMoscow24Form(), {
+    id: 1003,
+    tab: 'moderation',
+    statusLabel: 'На модерации',
+  }),
+  createMediaItem(createFederalPortalForm(), {
+    id: 1004,
+    tab: 'active',
+    statusLabel: 'Активно',
   }),
 ];
 
-export { MOCK_ACTIVE_MEDIA };
+export { MOCK_OWNER_MEDIA };

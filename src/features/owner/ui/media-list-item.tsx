@@ -57,7 +57,7 @@ const MediaListItem = ({ item, index, onSendToModeration, onDelete, canEdit }: M
                 </Link>
               ) : null}
               {onDelete ? (
-                <Button color="red" variant="subtle" onClick={() => onDelete(item)}>
+                <Button color="red" variant="light" onClick={() => onDelete(item)}>
                   Удалить
                 </Button>
               ) : null}

@@ -9,6 +9,12 @@ export type OwnerMediaItem = {
   data: AddMediaFormValues;
 };
 
+export type CreateMediaItemMeta = {
+  id?: number;
+  tab?: OwnerMediaTabValue;
+  statusLabel?: string;
+};
+
 export const OWNER_MEDIA_TABS: {
   value: OwnerMediaTabValue;
   label: string;
@@ -44,10 +50,13 @@ export const OWNER_MEDIA_TABS: {
 export type { AddMediaFormValues } from './add-media-form';
 export { EMPTY_ADD_MEDIA_FORM } from './add-media-form';
 
-const createMediaItem = (data: AddMediaFormValues): OwnerMediaItem => ({
-  id: Date.now(),
-  tab: 'created',
-  statusLabel: 'Создано',
+const createMediaItem = (
+  data: AddMediaFormValues,
+  meta?: CreateMediaItemMeta,
+): OwnerMediaItem => ({
+  id: meta?.id ?? Date.now(),
+  tab: meta?.tab ?? 'created',
+  statusLabel: meta?.statusLabel ?? 'Создано',
   data,
 });
 

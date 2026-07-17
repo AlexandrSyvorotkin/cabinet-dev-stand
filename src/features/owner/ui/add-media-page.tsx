@@ -16,6 +16,7 @@ const AddMediaPage = () => {
   } = useAddMediaForm();
 
   const handleSubmit = () => {
+    console.log('[CreateMedia] payload:', values);
     addMediaItem(values);
     navigate({ to: ROUTES.OWNER_MEDIA });
   };

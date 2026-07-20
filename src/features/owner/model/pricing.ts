@@ -15,13 +15,23 @@ export type PricingAddon = {
 
 export type ServicePackageKind = 'discount' | 'bonus';
 
+export type DiscountedServiceItem = {
+  id: string;
+  serviceKeys: string[];
+  percent: number;
+};
+
 export type ServicePackage = {
   id: string;
   name: string;
   kind: ServicePackageKind;
+  /** @deprecated Не используется в UI; оставлено для совместимости */
   minCount: number;
   baseServiceKeys: string[];
+  discountedServices: DiscountedServiceItem[];
+  /** @deprecated Используйте discountedServices */
   serviceKeys: string[];
+  /** @deprecated Используйте discountedServices */
   percent: number;
   bonusServiceKeys: string[];
 };
@@ -45,6 +55,45 @@ export type PriceCalculationResult = {
 
 const createId = (): string => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
+export const createDiscountedServiceItem = (
+  percent = 10,
+): DiscountedServiceItem => ({
+  id: createId(),
+  serviceKeys: [],
+  percent,
+});
+
+export const normalizeServicePackage = (servicePackage: ServicePackage): ServicePackage => {
+  if (servicePackage.kind !== 'discount') {
+    return servicePackage;
+  }
+
+  if (servicePackage.discountedServices?.length > 0) {
+    return servicePackage;
+  }
+
+  if (servicePackage.serviceKeys.length > 0) {
+    return {
+      ...servicePackage,
+      discountedServices: [
+        {
+          id: createId(),
+          serviceKeys: servicePackage.serviceKeys,
+          percent: servicePackage.percent,
+        },
+      ],
+    };
+  }
+
+  return {
+    ...servicePackage,
+    discountedServices: [createDiscountedServiceItem()],
+  };
+};
+
+export const getDiscountedServiceKeys = (servicePackage: ServicePackage): string[] =>
+  servicePackage.discountedServices.flatMap((item) => item.serviceKeys);
+
 export const createEmptyPricingRules = (): PricingRules => ({
   agencyDiscount: { enabled: false, percent: 10 },
   addons: [
@@ -67,6 +116,7 @@ export const createServicePackage = (
   kind,
   minCount: 2,
   baseServiceKeys: [],
+  discountedServices: kind === 'discount' ? [createDiscountedServiceItem()] : [],
   serviceKeys: [],
   percent: 10,
   bonusServiceKeys: [],
@@ -101,6 +151,10 @@ export const sanitizePricingSelections = (
         baseServiceKeys: servicePackage.baseServiceKeys.filter((key) =>
           discountEligible.has(key),
         ),
+        discountedServices: servicePackage.discountedServices.map((item) => ({
+          ...item,
+          serviceKeys: item.serviceKeys.filter((key) => discountEligible.has(key)),
+        })),
         serviceKeys: servicePackage.serviceKeys.filter((key) => discountEligible.has(key)),
       };
     }),

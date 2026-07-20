@@ -27,9 +27,11 @@ export {
   getBasicServiceSelectOptions,
   getEligibleBasicServiceKeys,
   getPlacementItems,
+  getPlacementTypeId,
   getSocialItems,
   removeBasicService,
   updateBasicServiceLabel,
+  updatePlacementType,
   updateSocialPlatform,
 } from './basic-services';
 export type { SocialNetworkRowValues, SocialNetworksValues } from './social-networks';
@@ -37,12 +39,21 @@ export {
   createEmptySocialNetworks,
   syncSocialNetworksWithBasicServices,
 } from './social-networks';
-export type { PricingAddon, PricingRules, ServicePackage, ServicePackageKind } from './pricing';
+export type {
+  DiscountedServiceItem,
+  PricingAddon,
+  PricingRules,
+  ServicePackage,
+  ServicePackageKind,
+} from './pricing';
 export {
+  createDiscountedServiceItem,
   createEmptyPricingRules,
   createPricingAddon,
   createServicePackage,
+  getDiscountedServiceKeys,
   getServicePackageLabel,
+  normalizeServicePackage,
   sanitizePricingSelections,
 } from './pricing';
 

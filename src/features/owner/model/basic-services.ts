@@ -4,6 +4,15 @@ import {
   SOCIAL_PLATFORMS,
   type SocialPlatformId,
 } from '@/shared/model/social-platforms';
+import {
+  getPlacementTypeConfig,
+  isPlacementTypeId,
+  PLACEMENT_TYPES,
+  type PlacementTypeId,
+} from '@/shared/model/placement-types';
+
+export type { PlacementTypeId } from '@/shared/model/placement-types';
+export { PLACEMENT_TYPE_OPTIONS } from '@/shared/model/placement-types';
 
 export type BasicServiceRowValues = {
   maxChars: string;
@@ -18,6 +27,7 @@ export type BasicServiceItemConfig = {
   label: string;
   group: 'placement' | 'social';
   isCustom: boolean;
+  placementTypeId?: PlacementTypeId;
   platformId?: SocialPlatformId;
   defaultMaxChars?: number | null;
   defaultHeadline?: number | null;
@@ -35,45 +45,34 @@ export type BasicServiceKey = string;
 
 const createId = (): string => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
+const PLACEMENT_TYPE_CONFIGS: BasicServiceItemConfig[] = PLACEMENT_TYPES.map((type) => ({
+  id: type.id,
+  label: type.label,
+  group: 'placement' as const,
+  isCustom: false,
+  placementTypeId: type.id,
+  defaultMaxChars: type.defaultMaxChars,
+  defaultHeadline: type.defaultHeadline,
+  defaultPrice: type.defaultPrice,
+  hint: type.hint,
+}));
+
+export const getPlacementTypeId = (
+  config: BasicServiceItemConfig,
+): PlacementTypeId | null => {
+  if (config.placementTypeId) {
+    return config.placementTypeId;
+  }
+
+  if (config.group === 'placement' && !config.isCustom && isPlacementTypeId(config.id)) {
+    return config.id;
+  }
+
+  return null;
+};
+
 export const BUILTIN_BASIC_SERVICES_CONFIG: BasicServiceItemConfig[] = [
-  {
-    id: 'news',
-    label: 'Новость',
-    group: 'placement',
-    isCustom: false,
-    defaultMaxChars: 1500,
-    defaultHeadline: 50,
-    defaultPrice: 8_000,
-  },
-  {
-    id: 'article',
-    label: 'Статья',
-    group: 'placement',
-    isCustom: false,
-    defaultMaxChars: 5000,
-    defaultHeadline: 100,
-    defaultPrice: 25_000,
-  },
-  {
-    id: 'interview',
-    label: 'Интервью',
-    group: 'placement',
-    isCustom: false,
-    defaultMaxChars: 5000,
-    defaultHeadline: 200,
-    defaultPrice: 35_000,
-    hint: 'от',
-  },
-  {
-    id: 'specialProject',
-    label: 'Спецпроект',
-    group: 'placement',
-    isCustom: false,
-    defaultMaxChars: null,
-    defaultHeadline: null,
-    defaultPrice: 120_000,
-    hint: 'без ограничений',
-  },
+  ...PLACEMENT_TYPE_CONFIGS,
   {
     id: 'telegram',
     label: 'ТГ',
@@ -140,15 +139,20 @@ export const createEmptyBasicServices = (): BasicServicesState => {
   };
 };
 
-export const createCustomPlacementService = (order: number): BasicServiceItemConfig => ({
-  id: `placement-${createId()}`,
-  label: `Тип размещения ${order}`,
-  group: 'placement',
-  isCustom: true,
-  defaultMaxChars: 1500,
-  defaultHeadline: 50,
-  defaultPrice: null,
-});
+export const createCustomPlacementService = (_order: number): BasicServiceItemConfig => {
+  const defaultType = getPlacementTypeConfig('news');
+
+  return {
+    id: `placement-${createId()}`,
+    label: defaultType.label,
+    group: 'placement',
+    isCustom: true,
+    placementTypeId: 'news',
+    defaultMaxChars: defaultType.defaultMaxChars,
+    defaultHeadline: defaultType.defaultHeadline,
+    defaultPrice: defaultType.defaultPrice,
+  };
+};
 
 export const createCustomSocialService = (): BasicServiceItemConfig => ({
   id: `social-${createId()}`,
@@ -227,6 +231,31 @@ export const updateBasicServiceLabel = (
   ...state,
   items: state.items.map((item) => (item.id === id ? { ...item, label } : item)),
 });
+
+export const updatePlacementType = (
+  state: BasicServicesState,
+  id: string,
+  placementTypeId: PlacementTypeId,
+): BasicServicesState => {
+  const typeConfig = getPlacementTypeConfig(placementTypeId);
+
+  return {
+    ...state,
+    items: state.items.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            placementTypeId,
+            label: typeConfig.label,
+            defaultMaxChars: typeConfig.defaultMaxChars,
+            defaultHeadline: typeConfig.defaultHeadline,
+            defaultPrice: typeConfig.defaultPrice,
+            hint: typeConfig.hint,
+          }
+        : item,
+    ),
+  };
+};
 
 export const getSocialPlatformId = (
   config: BasicServiceItemConfig,

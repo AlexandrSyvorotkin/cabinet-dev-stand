@@ -6,6 +6,10 @@ import type {
   PricingRules,
   ServicePackage,
 } from '@/features/owner/model/pricing';
+import {
+  getDiscountedServiceKeys,
+  normalizeServicePackage,
+} from '@/features/owner/model/pricing';
 
 type CalculatePriceInput = {
   servicePrices: Partial<Record<string, number>>;
@@ -68,26 +72,39 @@ const getServicePackageDiscount = (
   const baseKeys = servicePackage.baseServiceKeys.filter((key) =>
     selectedServiceKeys.includes(key),
   );
-  const discountedKeys = servicePackage.serviceKeys.filter((key) =>
-    selectedServiceKeys.includes(key),
-  );
 
-  if (baseKeys.length === 0 || discountedKeys.length < servicePackage.minCount) {
+  if (baseKeys.length === 0) {
     return null;
   }
 
-  const discountSaved = discountedKeys.reduce((sum, key) => {
-    const price = servicePrices[key] ?? 0;
-    return sum + Math.round((price * servicePackage.percent) / 100);
+  const discountSaved = servicePackage.discountedServices.reduce((total, item) => {
+    const itemSaved = item.serviceKeys
+      .filter((key) => selectedServiceKeys.includes(key))
+      .reduce((sum, key) => {
+        const price = servicePrices[key] ?? 0;
+        return sum + Math.round((price * item.percent) / 100);
+      }, 0);
+
+    return total + itemSaved;
   }, 0);
 
   if (discountSaved <= 0) {
     return null;
   }
 
+  const percents = [
+    ...new Set(
+      servicePackage.discountedServices
+        .filter((item) => item.serviceKeys.some((key) => selectedServiceKeys.includes(key)))
+        .map((item) => item.percent),
+    ),
+  ];
+  const percentLabel =
+    percents.length === 1 ? `−${percents[0]}%` : percents.map((value) => `−${value}%`).join(', ');
+
   return {
     amount: discountSaved,
-    label: `${packageLabel}: скидка −${servicePackage.percent}% на доп. услуги`,
+    label: `${packageLabel}: скидка ${percentLabel} на доп. услуги`,
   };
 };
 
@@ -98,10 +115,10 @@ const getBestServicePackageDiscount = (
   activePackageIds?: string[],
 ): PriceBreakdownLine | null => {
   const servicePackages = activePackageIds
-    ? rules.servicePackages.filter((servicePackage) =>
-        activePackageIds.includes(servicePackage.id),
-      )
-    : rules.servicePackages;
+    ? rules.servicePackages
+        .filter((servicePackage) => activePackageIds.includes(servicePackage.id))
+        .map(normalizeServicePackage)
+    : rules.servicePackages.map(normalizeServicePackage);
 
   const discounts = servicePackages
     .map((servicePackage, index) => {
@@ -140,11 +157,10 @@ const getBonusLines = (
     return [];
   }
 
-  const matchedTriggers = servicePackage.serviceKeys.filter((key) =>
-    selectedServiceKeys.includes(key),
-  );
-
-  if (matchedTriggers.length < servicePackage.minCount) {
+  if (
+    servicePackage.serviceKeys.length === 0 ||
+    !servicePackage.serviceKeys.every((key) => selectedServiceKeys.includes(key))
+  ) {
     return [];
   }
 
@@ -189,10 +205,10 @@ const calculatePrice = ({
     rules.agencyDiscount,
   );
   const servicePackages = activePackageIds
-    ? rules.servicePackages.filter((servicePackage) =>
-        activePackageIds.includes(servicePackage.id),
-      )
-    : rules.servicePackages;
+    ? rules.servicePackages
+        .filter((servicePackage) => activePackageIds.includes(servicePackage.id))
+        .map(normalizeServicePackage)
+    : rules.servicePackages.map(normalizeServicePackage);
 
   const baseTotal = selectedServiceKeys.reduce(
     (sum, key) => sum + (effectiveServicePrices[key] ?? 0),
@@ -251,7 +267,12 @@ const calculatePrice = ({
 
 const getServicePackagePreviewKeys = (servicePackage: ServicePackage): string[] => {
   if (servicePackage.kind === 'discount') {
-    return [...new Set([...servicePackage.baseServiceKeys, ...servicePackage.serviceKeys])];
+    return [
+      ...new Set([
+        ...servicePackage.baseServiceKeys,
+        ...getDiscountedServiceKeys(servicePackage),
+      ]),
+    ];
   }
 
   const keys = new Set(servicePackage.serviceKeys);
@@ -265,54 +286,74 @@ const getServicePackagePreviewKeys = (servicePackage: ServicePackage): string[] 
   return [...keys];
 };
 
+const formatServiceList = (keys: string[], serviceLabels: Record<string, string>): string =>
+  keys.map((key) => serviceLabels[key] ?? key).join(', ');
+
 const calculateDiscountServicePackagePreview = ({
   servicePackage,
   servicePrices,
+  serviceLabels,
   agencyDiscount,
 }: {
   servicePackage: ServicePackage;
   servicePrices: Partial<Record<string, number>>;
+  serviceLabels: Record<string, string>;
   agencyDiscount: AgencyDiscount;
 }): PriceCalculationResult | null => {
-  const { baseServiceKeys, serviceKeys: discountedKeys, minCount, percent } = servicePackage;
+  const { baseServiceKeys } = servicePackage;
+  const discountedKeys = getDiscountedServiceKeys(servicePackage);
 
   if (baseServiceKeys.length === 0 && discountedKeys.length === 0) {
     return null;
   }
 
   const effectivePrices = getEffectiveServicePrices(servicePrices, agencyDiscount);
-  const packageApplies = baseServiceKeys.length > 0 && discountedKeys.length >= minCount;
+  const packageApplies = baseServiceKeys.length > 0 && discountedKeys.length > 0;
 
   const baseAmount = baseServiceKeys.reduce(
     (sum, key) => sum + (effectivePrices[key] ?? 0),
     0,
   );
 
-  const discountedAmount = discountedKeys.reduce((sum, key) => {
-    const price = effectivePrices[key] ?? 0;
-
-    if (packageApplies) {
-      return sum + Math.round(price * (1 - percent / 100));
-    }
-
-    return sum + price;
-  }, 0);
-
   const breakdown: PriceBreakdownLine[] = [];
 
   if (baseAmount > 0) {
+    const baseServicesLabel = formatServiceList(baseServiceKeys, serviceLabels);
+
     breakdown.push({
       label: agencyDiscount.enabled
-        ? `Базовые услуги (скидка агентству −${agencyDiscount.percent}%)`
-        : 'Базовые услуги',
+        ? `Базовые услуги: ${baseServicesLabel} (скидка агентству −${agencyDiscount.percent}%)`
+        : `Базовые услуги: ${baseServicesLabel}`,
       amount: baseAmount,
     });
   }
 
-  if (discountedKeys.length > 0) {
+  let discountedAmount = 0;
+
+  for (const item of servicePackage.discountedServices) {
+    if (item.serviceKeys.length === 0) {
+      continue;
+    }
+
+    const itemAmount = item.serviceKeys.reduce((sum, key) => {
+      const price = effectivePrices[key] ?? 0;
+
+      if (packageApplies) {
+        return sum + Math.round(price * (1 - item.percent / 100));
+      }
+
+      return sum + price;
+    }, 0);
+
+    discountedAmount += itemAmount;
+
+    const servicesLabel = formatServiceList(item.serviceKeys, serviceLabels);
+
     breakdown.push({
-      label: packageApplies ? `Услуги со скидкой (−${percent}%)` : 'Услуги со скидкой',
-      amount: discountedAmount,
+      label: packageApplies
+        ? `Услуги со скидкой: ${servicesLabel} (−${item.percent}%)`
+        : `Услуги со скидкой: ${servicesLabel}`,
+      amount: itemAmount,
     });
   }
 
@@ -338,8 +379,9 @@ const calculateServicePackagePreview = ({
 }): PriceCalculationResult | null => {
   if (servicePackage.kind === 'discount') {
     return calculateDiscountServicePackagePreview({
-      servicePackage,
+      servicePackage: normalizeServicePackage(servicePackage),
       servicePrices,
+      serviceLabels,
       agencyDiscount,
     });
   }

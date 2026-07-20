@@ -1,6 +1,6 @@
 import type { AddMediaFormValues } from './add-media-form';
 import { getBasicServiceLabelsMap } from './basic-services';
-import { getServicePackageLabel, type ServicePackage } from './pricing';
+import { getServicePackageLabel, normalizeServicePackage, type ServicePackage } from './pricing';
 import { parsePrice } from '@/shared/lib/pricing';
 
 export type MediaServicePriceItem = {
@@ -34,20 +34,26 @@ const getDiscountPackageDescription = (
   servicePackage: ServicePackage,
   labelsMap: Record<string, string>,
 ): string => {
+  const normalizedPackage = normalizeServicePackage(servicePackage);
   const parts: string[] = [];
 
-  if (servicePackage.baseServiceKeys.length > 0) {
-    parts.push(`база: ${formatServiceList(servicePackage.baseServiceKeys, labelsMap)}`);
+  if (normalizedPackage.baseServiceKeys.length > 0) {
+    parts.push(`база: ${formatServiceList(normalizedPackage.baseServiceKeys, labelsMap)}`);
   }
 
-  if (servicePackage.serviceKeys.length > 0) {
-    parts.push(
-      `со скидкой: ${formatServiceList(servicePackage.serviceKeys, labelsMap)} (−${servicePackage.percent}%)`,
+  const discountedParts = normalizedPackage.discountedServices
+    .filter((item) => item.serviceKeys.length > 0)
+    .map(
+      (item) =>
+        `${formatServiceList(item.serviceKeys, labelsMap)} (−${item.percent}%)`,
     );
+
+  if (discountedParts.length > 0) {
+    parts.push(`со скидкой: ${discountedParts.join('; ')}`);
   }
 
   if (parts.length === 0) {
-    return `−${servicePackage.percent}%`;
+    return '—';
   }
 
   return parts.join(' · ');
@@ -61,7 +67,7 @@ const getBonusPackageDescription = (
   const bonus = formatServiceList(servicePackage.bonusServiceKeys, labelsMap);
 
   if (condition === '—' && bonus === '—') {
-    return `от ${servicePackage.minCount} услуг`;
+    return '—';
   }
 
   if (bonus === '—') {

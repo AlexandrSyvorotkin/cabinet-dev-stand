@@ -1,5 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, type CSSProperties, type ReactNode } from 'react';
 import {
+  ActionIcon,
+  Box,
   Button,
   Checkbox,
   Divider,
@@ -12,6 +14,7 @@ import {
   Text,
   TextInput,
   Title,
+  Tooltip,
 } from '@mantine/core';
 import { calculateServicePackagePreview, parsePrice } from '@/shared/lib/pricing';
 import {
@@ -21,7 +24,11 @@ import {
 import { getBasicServiceLabelsMap } from '../model/basic-services';
 import {
   createPricingAddon,
+  createDiscountedServiceItem,
   createServicePackage,
+  getDiscountedServiceKeys,
+  normalizeServicePackage,
+  type DiscountedServiceItem,
   type ServicePackage,
   type PricingRules,
   type ServicePackageKind,
@@ -49,6 +56,35 @@ type ServicePackageCardProps = {
 };
 
 const formatAmount = (value: number): string => value.toLocaleString('ru-RU');
+
+const BASIC_SERVICES_DISCOUNT_HINT =
+  'Сначала отметьте «Скидка» в таблице базовых услуг выше — тогда здесь можно будет выбрать услуги для пакета';
+
+const BASIC_SERVICES_BONUS_HINT =
+  'Сначала отметьте «Бонус» в таблице базовых услуг выше — тогда здесь можно будет выбрать услуги для пакета';
+
+const SELECT_BASE_SERVICE_HINT = 'Сначала выберите базовую услугу';
+
+type FieldHintTooltipProps = {
+  label: string;
+  active: boolean;
+  children: ReactNode;
+  style?: CSSProperties;
+};
+
+const FieldHintTooltip = ({ label, active, children, style }: FieldHintTooltipProps) => {
+  const wrapped = <Box style={style}>{children}</Box>;
+
+  if (!active) {
+    return wrapped;
+  }
+
+  return (
+    <Tooltip label={label} multiline w={300} withArrow>
+      {wrapped}
+    </Tooltip>
+  );
+};
 
 const ServicePackagePreview = ({
   servicePackage,
@@ -92,8 +128,8 @@ const ServicePackagePreview = ({
       return 'Выберите базовую услугу';
     }
 
-    if (servicePackage.serviceKeys.length < servicePackage.minCount) {
-      return `Скидка на доп. услуги применится при выборе от ${servicePackage.minCount} услуг`;
+    if (getDiscountedServiceKeys(servicePackage).length === 0) {
+      return 'Выберите услуги со скидкой';
     }
 
     return null;
@@ -111,10 +147,12 @@ const ServicePackagePreview = ({
 
   return (
     <Stack gap="xs">
-      {preview.breakdown.map((line) => (
-        <Group key={line.label} justify="space-between" wrap="nowrap">
-          <Text size="sm">{line.label}</Text>
-          <Text size="sm" fw={500} c={line.amount < 0 ? 'red' : undefined}>
+      {preview.breakdown.map((line, lineIndex) => (
+        <Group key={`${line.label}-${lineIndex}`} justify="space-between" wrap="wrap" align="flex-start">
+          <Text size="sm" style={{ flex: 1, minWidth: 160 }}>
+            {line.label}
+          </Text>
+          <Text size="sm" fw={500} c={line.amount < 0 ? 'red' : undefined} style={{ flexShrink: 0 }}>
             {line.amount < 0 ? '−' : ''}
             {formatAmount(Math.abs(line.amount))} руб.
           </Text>
@@ -142,7 +180,7 @@ const ServicePackagePreview = ({
 };
 
 const ServicePackageCard = ({
-  servicePackage,
+  servicePackage: rawServicePackage,
   index,
   basicServices,
   agencyDiscount,
@@ -151,10 +189,67 @@ const ServicePackageCard = ({
   onUpdate,
   onRemove,
 }: ServicePackageCardProps) => {
+  const servicePackage = normalizeServicePackage(rawServicePackage);
+
   const handleKindChange = (value: string | null) => {
     const kind = (value ?? 'discount') as ServicePackageKind;
-    onUpdate({ kind });
+    onUpdate(
+      kind === 'discount'
+        ? {
+            kind,
+            discountedServices:
+              rawServicePackage.discountedServices?.length > 0
+                ? rawServicePackage.discountedServices
+                : [createDiscountedServiceItem()],
+          }
+        : { kind },
+    );
   };
+
+  const addDiscountedService = () => {
+    onUpdate({
+      discountedServices: [
+        ...servicePackage.discountedServices,
+        createDiscountedServiceItem(),
+      ],
+    });
+  };
+
+  const removeDiscountedService = (itemId: string) => {
+    if (servicePackage.discountedServices.length <= 1) {
+      return;
+    }
+
+    onUpdate({
+      discountedServices: servicePackage.discountedServices.filter(
+        (item) => item.id !== itemId,
+      ),
+    });
+  };
+
+  const updateDiscountedService = (
+    itemId: string,
+    patch: Partial<DiscountedServiceItem>,
+  ) => {
+    onUpdate({
+      discountedServices: servicePackage.discountedServices.map((item) =>
+        item.id === itemId ? { ...item, ...patch } : item,
+      ),
+    });
+  };
+
+  const hasBaseService = servicePackage.baseServiceKeys.length > 0;
+  const hasDiscountOptions = discountOptions.length > 0;
+  const hasBonusOptions = bonusOptions.length > 0;
+  const discountedSectionDisabled = !hasDiscountOptions || !hasBaseService;
+  const discountedSectionHint = !hasDiscountOptions
+    ? BASIC_SERVICES_DISCOUNT_HINT
+    : SELECT_BASE_SERVICE_HINT;
+  const discountedPlaceholder = !hasDiscountOptions
+    ? 'Отметьте «Скидка» в таблице базовых услуг'
+    : hasBaseService
+      ? 'Выберите услуги'
+      : 'Сначала выберите базовую услугу';
 
   return (
     <Paper withBorder p="md" radius="md" bg="gray.0">
@@ -179,115 +274,165 @@ const ServicePackageCard = ({
           </Tabs.List>
 
           <Tabs.Panel value="discount" pt="md">
-            <Group align="flex-end" wrap="wrap">
-              <NumberInput
-                label="Мин. услуг со скидкой"
-                value={servicePackage.minCount}
-                onChange={(value) => onUpdate({ minCount: Number(value) || 1 })}
-                min={1}
-                w={160}
-              />
-              <NumberInput
-                label="Скидка"
-                suffix="%"
-                value={servicePackage.percent}
-                onChange={(value) => onUpdate({ percent: Number(value) || 0 })}
-                min={0}
-                max={100}
-                w={120}
-              />
-              <MultiSelect
-                label="Базовая услуга"
-                data={discountOptions.filter(
-                  (option) => !servicePackage.serviceKeys.includes(option.value),
-                )}
-                value={servicePackage.baseServiceKeys}
-                onChange={(value) => {
-                  const baseServiceKeys = value as ServicePackage['baseServiceKeys'];
-
-                  onUpdate({
-                    baseServiceKeys,
-                    serviceKeys: servicePackage.serviceKeys.filter(
-                      (key) => !baseServiceKeys.includes(key),
-                    ),
-                  });
-                }}
-                placeholder={
-                  discountOptions.length === 0
-                    ? 'Отметьте «Скидка» в таблице базовых услуг'
-                    : 'Выберите услугу'
-                }
-                disabled={discountOptions.length === 0}
-                style={{ flex: 1, minWidth: 200 }}
-              />
-              <MultiSelect
-                label="Услуги со скидкой"
-                data={discountOptions.filter(
-                  (option) => !servicePackage.baseServiceKeys.includes(option.value),
-                )}
-                value={servicePackage.serviceKeys}
-                onChange={(value) => {
-                  const serviceKeys = value as ServicePackage['serviceKeys'];
-
-                  onUpdate({
-                    serviceKeys,
-                    baseServiceKeys: servicePackage.baseServiceKeys.filter(
-                      (key) => !serviceKeys.includes(key),
-                    ),
-                  });
-                }}
-                placeholder={
-                  discountOptions.length === 0
-                    ? 'Отметьте «Скидка» в таблице базовых услуг'
-                    : 'Выберите услуги'
-                }
-                disabled={discountOptions.length === 0}
+            <Group align="flex-start" wrap="nowrap" gap="md">
+              <FieldHintTooltip
+                label={BASIC_SERVICES_DISCOUNT_HINT}
+                active={!hasDiscountOptions}
                 style={{ flex: 1, minWidth: 240 }}
-              />
+              >
+                <MultiSelect
+                  label="Базовая услуга"
+                  data={discountOptions}
+                  value={servicePackage.baseServiceKeys}
+                  onChange={(value) => {
+                    const baseServiceKeys = value as ServicePackage['baseServiceKeys'];
+
+                    onUpdate({
+                      baseServiceKeys,
+                      discountedServices:
+                        baseServiceKeys.length === 0
+                          ? servicePackage.discountedServices.map((item) => ({
+                              ...item,
+                              serviceKeys: [],
+                            }))
+                          : servicePackage.discountedServices,
+                    });
+                  }}
+                  placeholder={
+                    hasDiscountOptions ? 'Выберите услугу' : 'Отметьте «Скидка» в таблице базовых услуг'
+                  }
+                  disabled={!hasDiscountOptions}
+                />
+              </FieldHintTooltip>
+
+              <FieldHintTooltip
+                label={discountedSectionHint}
+                active={discountedSectionDisabled}
+                style={{
+                  flex: 1,
+                  minWidth: 280,
+                  opacity: hasBaseService ? 1 : 0.55,
+                }}
+              >
+                <Stack gap="sm">
+                  {servicePackage.discountedServices.map((item, itemIndex) => (
+                    <Group key={item.id} align="flex-end" wrap="nowrap">
+                      <MultiSelect
+                        label={itemIndex === 0 ? 'Услуги со скидкой' : undefined}
+                        data={discountOptions}
+                        value={item.serviceKeys}
+                        onChange={(value) =>
+                          updateDiscountedService(item.id, {
+                            serviceKeys: value as DiscountedServiceItem['serviceKeys'],
+                          })
+                        }
+                        placeholder={discountedPlaceholder}
+                        disabled={discountedSectionDisabled}
+                        style={{ flex: 1, minWidth: 180 }}
+                      />
+                      <NumberInput
+                        label={itemIndex === 0 ? 'Скидка' : undefined}
+                        suffix="%"
+                        value={item.percent}
+                        onChange={(value) =>
+                          updateDiscountedService(item.id, {
+                            percent: Number(value) || 0,
+                          })
+                        }
+                        min={0}
+                        max={100}
+                        w={100}
+                        disabled={discountedSectionDisabled}
+                      />
+                      <Tooltip
+                        label={
+                          !hasDiscountOptions
+                            ? BASIC_SERVICES_DISCOUNT_HINT
+                            : !hasBaseService
+                              ? SELECT_BASE_SERVICE_HINT
+                              : servicePackage.discountedServices.length <= 1
+                                ? 'Нельзя удалить последнюю услугу со скидкой'
+                                : 'Удалить'
+                        }
+                        multiline={!hasDiscountOptions || !hasBaseService}
+                        w={!hasDiscountOptions || !hasBaseService ? 300 : undefined}
+                      >
+                        <Box component="span" style={{ display: 'inline-flex' }}>
+                          <ActionIcon
+                            variant="subtle"
+                            color="red"
+                            size="lg"
+                            aria-label="Удалить услугу со скидкой"
+                            disabled={
+                              discountedSectionDisabled ||
+                              servicePackage.discountedServices.length <= 1
+                            }
+                            onClick={() => removeDiscountedService(item.id)}
+                          >
+                            ×
+                          </ActionIcon>
+                        </Box>
+                      </Tooltip>
+                    </Group>
+                  ))}
+
+                  <Button
+                    size="xs"
+                    variant="light"
+                    onClick={addDiscountedService}
+                    disabled={discountedSectionDisabled}
+                  >
+                    Добавить услугу со скидкой
+                  </Button>
+                </Stack>
+              </FieldHintTooltip>
             </Group>
           </Tabs.Panel>
 
           <Tabs.Panel value="bonus" pt="md">
             <Group align="flex-end" wrap="wrap">
-              <NumberInput
-                label="Мин. услуг"
-                value={servicePackage.minCount}
-                onChange={(value) => onUpdate({ minCount: Number(value) || 1 })}
-                min={1}
-                w={120}
-              />
-              <MultiSelect
-                label="Услуги для условия"
-                data={bonusOptions}
-                value={servicePackage.serviceKeys}
-                onChange={(value) =>
-                  onUpdate({ serviceKeys: value as ServicePackage['serviceKeys'] })
-                }
-                placeholder={
-                  bonusOptions.length === 0
-                    ? 'Отметьте «Бонус» в таблице базовых услуг'
-                    : 'Выберите услуги'
-                }
-                disabled={bonusOptions.length === 0}
+              <FieldHintTooltip
+                label={BASIC_SERVICES_BONUS_HINT}
+                active={!hasBonusOptions}
                 style={{ flex: 1, minWidth: 240 }}
-              />
-              <MultiSelect
-                label="Бонусные услуги"
-                data={bonusOptions}
-                value={servicePackage.bonusServiceKeys}
-                onChange={(value) =>
-                  onUpdate({
-                    bonusServiceKeys: value as ServicePackage['bonusServiceKeys'],
-                  })
-                }
-                placeholder={
-                  bonusOptions.length === 0
-                    ? 'Отметьте «Бонус» в таблице базовых услуг'
-                    : 'Выберите бонусные услуги'
-                }
-                disabled={bonusOptions.length === 0}
+              >
+                <MultiSelect
+                  label="Услуги для условия"
+                  data={bonusOptions}
+                  value={servicePackage.serviceKeys}
+                  onChange={(value) =>
+                    onUpdate({ serviceKeys: value as ServicePackage['serviceKeys'] })
+                  }
+                  placeholder={
+                    hasBonusOptions
+                      ? 'Выберите услуги'
+                      : 'Отметьте «Бонус» в таблице базовых услуг'
+                  }
+                  disabled={!hasBonusOptions}
+                />
+              </FieldHintTooltip>
+              <FieldHintTooltip
+                label={BASIC_SERVICES_BONUS_HINT}
+                active={!hasBonusOptions}
                 style={{ flex: 1, minWidth: 240 }}
-              />
+              >
+                <MultiSelect
+                  label="Бонусные услуги"
+                  data={bonusOptions}
+                  value={servicePackage.bonusServiceKeys}
+                  onChange={(value) =>
+                    onUpdate({
+                      bonusServiceKeys: value as ServicePackage['bonusServiceKeys'],
+                    })
+                  }
+                  placeholder={
+                    hasBonusOptions
+                      ? 'Выберите бонусные услуги'
+                      : 'Отметьте «Бонус» в таблице базовых услуг'
+                  }
+                  disabled={!hasBonusOptions}
+                />
+              </FieldHintTooltip>
             </Group>
           </Tabs.Panel>
         </Tabs>

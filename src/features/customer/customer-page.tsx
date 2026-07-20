@@ -1,17 +1,39 @@
-import { Alert, Stack, Text, Title } from '@mantine/core';
-import { getSession, USER_ROLE_LABELS } from '@/shared/model';
+import { Badge, Button, Group, Stack, Tabs, Title } from '@mantine/core';
+import { getCustomerOrdersCountByTab } from './mock/orders';
+import { CUSTOMER_ORDER_TABS } from './model/order-tabs';
+import { CustomerOrdersTable } from './ui/customer-orders-table';
 
 const CustomerPage = () => {
-  const session = getSession();
-
   return (
-    <Stack gap="md">
-      <Title order={2}>Кабинет заказчика</Title>
-      <Alert color="blue" title="Изолированный раздел">
-        Доступен только пользователям с ролью «{USER_ROLE_LABELS.customer}».
-      </Alert>
-      <Text>Здесь будут заказы, статусы кампаний и документы.</Text>
-      {session ? <Text c="dimmed">Вы вошли как {session.user.name}</Text> : null}
+    <Stack gap="xl">
+      <Group justify="space-between" align="flex-end" wrap="wrap">
+        <Title order={2}>Личный кабинет заказчика</Title>
+        <Button variant="light">Создать заказ</Button>
+      </Group>
+
+      <Tabs defaultValue="active">
+        <Tabs.List>
+          {CUSTOMER_ORDER_TABS.map((tab) => (
+            <Tabs.Tab
+              key={tab.value}
+              value={tab.value}
+              rightSection={
+                <Badge size="sm" color={tab.badgeColor} variant="filled" circle>
+                  {getCustomerOrdersCountByTab(tab.value)}
+                </Badge>
+              }
+            >
+              {tab.label}
+            </Tabs.Tab>
+          ))}
+        </Tabs.List>
+
+        {CUSTOMER_ORDER_TABS.map((tab) => (
+          <Tabs.Panel key={tab.value} value={tab.value} pt="md">
+            <CustomerOrdersTable tab={tab.value} emptyText={tab.emptyText} />
+          </Tabs.Panel>
+        ))}
+      </Tabs>
     </Stack>
   );
 };

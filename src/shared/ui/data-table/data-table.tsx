@@ -3,7 +3,7 @@ import { ActionIcon, Center, Table, Text } from '@mantine/core';
 
 type DataTableColumn<T> = {
   key: string;
-  title: string;
+  title: ReactNode;
   render: (row: T) => ReactNode;
 };
 

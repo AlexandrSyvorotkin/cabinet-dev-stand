@@ -56,19 +56,13 @@ const CustomerOrdersTable = ({ tab, emptyText }: CustomerOrdersTableProps) => {
         renderPanel={(order: CustomerOrder) => <CustomerOrderDetails order={order} />}
         renderSummary={
           tab === 'completed'
-            ? (order: CustomerOrder) =>
-                order.mediaCount && order.amount && order.completedAt ? (
-                  <Text size="sm" c="dimmed">
-                    {order.mediaCount} СМИ | {formatAmount(order.amount)} руб. · выполнено{' '}
-                    {order.completedAt}
-                  </Text>
-                ) : null
-            : (order: CustomerOrder) =>
-                order.mediaCount && order.amount ? (
-                  <Text size="sm" c="dimmed">
-                    {order.mediaCount} СМИ | {formatAmount(order.amount)} руб.
-                  </Text>
-                ) : null
+            ? (order: CustomerOrder) => (
+                <Text size="sm" c="dimmed">
+                  {order.totalCount} СМИ | {formatAmount(order.depositedAmount)} руб. из{' '}
+                  {formatAmount(order.deductedAmount)} руб. выполнено {order.date}
+                </Text>
+              )
+            : undefined
         }
       />
     </Stack>

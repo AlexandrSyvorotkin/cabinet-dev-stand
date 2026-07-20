@@ -1,4 +1,5 @@
-import { customerRoute } from './customer-route';
+import { customerIndexRoute } from './customer-index-route';
+import { customerLayoutRoute } from './customer-layout-route';
 import { homeRoute } from './home-route';
 import { moderatorRoute } from './moderator-route';
 import { ownerIndexRoute } from './owner-index-route';
@@ -16,13 +17,14 @@ export const appRoutes = [
     ownerMediaAddRoute,
     ownerMediaEditRoute,
   ]),
-  customerRoute,
+  customerLayoutRoute.addChildren([customerIndexRoute]),
   moderatorRoute,
   profileRoute,
 ];
 
 export {
-  customerRoute,
+  customerIndexRoute,
+  customerLayoutRoute,
   homeRoute,
   moderatorRoute,
   ownerIndexRoute,

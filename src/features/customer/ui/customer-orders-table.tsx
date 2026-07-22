@@ -1,9 +1,6 @@
 import { Button, Group, Stack, Text, TextInput } from '@mantine/core';
 import { ExpandableList } from '@/shared/ui/expandable-list';
-import {
-  getCompletedCustomerOrdersTotal,
-  getCustomerOrdersByTab,
-} from '../mock/orders';
+import { useCustomerOrders } from '../model/customer-orders-context';
 import type { CustomerOrder, CustomerOrderTabValue } from '../model/order';
 import { CustomerOrderDetails } from './customer-order-details';
 
@@ -15,7 +12,8 @@ type CustomerOrdersTableProps = {
 const formatAmount = (value: number): string => value.toLocaleString('ru-RU');
 
 const CustomerOrdersTable = ({ tab, emptyText }: CustomerOrdersTableProps) => {
-  const orders = getCustomerOrdersByTab(tab);
+  const { getOrdersByTab, getCompletedOrdersTotal } = useCustomerOrders();
+  const orders = getOrdersByTab(tab);
   const showPeriodTotal = tab === 'completed';
 
   return (
@@ -35,7 +33,7 @@ const CustomerOrdersTable = ({ tab, emptyText }: CustomerOrdersTableProps) => {
 
         {showPeriodTotal ? (
           <Text size="sm" fw={500} ml="auto">
-            Итого за период: {formatAmount(getCompletedCustomerOrdersTotal())} руб.
+            Итого за период: {formatAmount(getCompletedOrdersTotal())} руб.
           </Text>
         ) : null}
       </Group>
@@ -62,7 +60,13 @@ const CustomerOrdersTable = ({ tab, emptyText }: CustomerOrdersTableProps) => {
                   {formatAmount(order.deductedAmount)} руб. выполнено {order.date}
                 </Text>
               )
-            : undefined
+            : tab === 'in-progress'
+              ? (order: CustomerOrder) => (
+                  <Text size="sm" c="dimmed">
+                    {order.time} | {order.date}
+                  </Text>
+                )
+              : undefined
         }
       />
     </Stack>

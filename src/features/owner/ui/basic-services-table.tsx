@@ -1,10 +1,18 @@
-import { ActionIcon, Box, Checkbox, Group, NumberInput, Stack, Text, Tooltip } from '@mantine/core';
+import {
+  ActionIcon,
+  Checkbox,
+  Group,
+  NumberInput,
+  Stack,
+  Text,
+  TextInput,
+  Tooltip,
+} from '@mantine/core';
 import { applyAgencyDiscountToPrice, parsePrice } from '@/shared/lib/pricing';
 import {
   getPlacementTypeCharsTooltip,
   PLACEMENT_CHARS_TOOLTIP,
 } from '@/shared/model/placement-types';
-import { PlacementTypeSelect } from '@/shared/ui/placement-type-select';
 import { InfoHintIcon } from '@/shared/ui/info-hint-icon';
 import { SocialPlatformSelect } from '@/shared/ui/social-platform-select';
 import { DataTable } from '@/shared/ui/data-table';
@@ -20,7 +28,7 @@ import {
   getSocialPlatformId,
   getUsedSocialPlatformIds,
   removeBasicService,
-  updatePlacementType,
+  updateBasicServiceLabel,
   updateSocialPlatform,
   type BasicServiceItemConfig,
   type BasicServicesState,
@@ -51,6 +59,10 @@ const BasicServicesTable = ({
     });
   };
 
+  const updateLabel = (id: string, label: string) => {
+    onChange(updateBasicServiceLabel(values, id, label));
+  };
+
   const handleRemove = (id: string) => {
     const nextState = removeBasicService(values, id);
 
@@ -79,19 +91,31 @@ const BasicServicesTable = ({
           );
         }
 
+        if (config.isCustom) {
+          return (
+            <TextInput
+              value={config.label}
+              onChange={(event) => updateLabel(config.id, event.currentTarget.value)}
+              placeholder="Название"
+            />
+          );
+        }
+
         const placementTypeId = getPlacementTypeId(config);
         const charsTooltip = getPlacementTypeCharsTooltip(placementTypeId);
 
         return (
           <Group gap={6} wrap="nowrap" align="center">
-            <Box style={{ flex: 1, minWidth: 0 }}>
-              <PlacementTypeSelect
-                value={placementTypeId}
-                onChange={(nextPlacementTypeId) =>
-                  onChange(updatePlacementType(values, config.id, nextPlacementTypeId))
-                }
-              />
-            </Box>
+            <Stack gap={2}>
+              <Text size="sm" fw={500}>
+                {config.label}
+              </Text>
+              {config.hint ? (
+                <Text size="xs" c="dimmed">
+                  {config.hint}
+                </Text>
+              ) : null}
+            </Stack>
             {charsTooltip ? <InfoHintIcon label={charsTooltip} /> : null}
           </Group>
         );

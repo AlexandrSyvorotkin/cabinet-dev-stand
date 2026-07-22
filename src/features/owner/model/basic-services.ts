@@ -139,20 +139,15 @@ export const createEmptyBasicServices = (): BasicServicesState => {
   };
 };
 
-export const createCustomPlacementService = (_order: number): BasicServiceItemConfig => {
-  const defaultType = getPlacementTypeConfig('news');
-
-  return {
-    id: `placement-${createId()}`,
-    label: defaultType.label,
-    group: 'placement',
-    isCustom: true,
-    placementTypeId: 'news',
-    defaultMaxChars: defaultType.defaultMaxChars,
-    defaultHeadline: defaultType.defaultHeadline,
-    defaultPrice: defaultType.defaultPrice,
-  };
-};
+export const createCustomPlacementService = (order: number): BasicServiceItemConfig => ({
+  id: `placement-${createId()}`,
+  label: `Тип размещения ${order}`,
+  group: 'placement',
+  isCustom: true,
+  defaultMaxChars: 1500,
+  defaultHeadline: 50,
+  defaultPrice: null,
+});
 
 export const createCustomSocialService = (): BasicServiceItemConfig => ({
   id: `social-${createId()}`,

@@ -1,3 +1,5 @@
+import type { PlaceOrderFormValues } from './place-order-form';
+
 export type CustomerOrderTabValue = 'in-progress' | 'special' | 'completed' | 'saved';
 
 export type CustomerPlacedMedia = {
@@ -27,15 +29,9 @@ export type CustomerOrder = {
   depositedAmount: number;
   returnedAmount: number;
   deductedAmount: number;
+  formData: PlaceOrderFormValues;
 };
 
 export const formatYesNo = (value: boolean): string => (value ? 'Да' : 'Нет');
 
 export const CUSTOMER_BALANCE = 172_690;
-
-export const CUSTOMER_TAB_COUNTS: Record<CustomerOrderTabValue, number> = {
-  'in-progress': 0,
-  special: 0,
-  completed: 44,
-  saved: 0,
-};

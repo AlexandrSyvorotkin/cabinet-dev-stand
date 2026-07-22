@@ -1,11 +1,15 @@
 import type { CustomerOrder } from '../model/order';
-import { CUSTOMER_TAB_COUNTS } from '../model/order';
+import { inferFormDataFromOrder } from '../model/create-customer-order';
+
+const createFormData = (order: Omit<CustomerOrder, 'tab' | 'formData'>) =>
+  inferFormDataFromOrder(order as CustomerOrder);
 
 const createCompletedOrder = (
-  order: Omit<CustomerOrder, 'tab'>,
+  order: Omit<CustomerOrder, 'tab' | 'formData'>,
 ): CustomerOrder => ({
   ...order,
   tab: 'completed',
+  formData: createFormData(order),
 });
 
 const MOCK_CUSTOMER_ORDERS: CustomerOrder[] = [
@@ -148,21 +152,4 @@ const MOCK_CUSTOMER_ORDERS: CustomerOrder[] = [
   }),
 ];
 
-const getCustomerOrdersByTab = (tab: CustomerOrder['tab']): CustomerOrder[] =>
-  MOCK_CUSTOMER_ORDERS.filter((order) => order.tab === tab);
-
-const getCustomerOrdersCountByTab = (tab: CustomerOrder['tab']): number =>
-  CUSTOMER_TAB_COUNTS[tab];
-
-const getCompletedCustomerOrdersTotal = (): number =>
-  getCustomerOrdersByTab('completed').reduce(
-    (sum, order) => sum + order.depositedAmount,
-    0,
-  );
-
-export {
-  getCompletedCustomerOrdersTotal,
-  getCustomerOrdersByTab,
-  getCustomerOrdersCountByTab,
-  MOCK_CUSTOMER_ORDERS,
-};
+export { MOCK_CUSTOMER_ORDERS };

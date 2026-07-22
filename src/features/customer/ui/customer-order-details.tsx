@@ -8,6 +8,7 @@ import {
   Stack,
   Text,
 } from '@mantine/core';
+import { Link } from '@tanstack/react-router';
 import { formatYesNo, type CustomerOrder } from '../model/order';
 
 type CustomerOrderDetailsProps = {
@@ -47,15 +48,37 @@ const GoogleIcon = () => (
 );
 
 const CustomerOrderDetails = ({ order }: CustomerOrderDetailsProps) => {
+  const canEdit = order.tab === 'in-progress';
+
   return (
     <Stack gap="md">
+      {canEdit ? (
+        <Group justify="flex-end">
+          <Link
+            to="/customer/orders/$orderId/edit"
+            params={{ orderId: String(order.id) }}
+            style={{ textDecoration: 'none' }}
+          >
+            <Button variant="light">Редактировать</Button>
+          </Link>
+        </Group>
+      ) : null}
+
+      {order.formData.description ? (
+        <DetailField label="Описание заказа" value={order.formData.description} />
+      ) : null}
+
       <Stack gap={4}>
         <Text size="xs" tt="uppercase" fw={600} c="dimmed">
-          Оригинал новости
+          {order.formData.materialSource === 'link' ? 'Оригинал новости' : 'Материал'}
         </Text>
-        <Anchor href={order.newsUrl} target="_blank" rel="noopener noreferrer" size="sm">
-          {order.newsUrl}
-        </Anchor>
+        {order.formData.materialSource === 'link' ? (
+          <Anchor href={order.newsUrl} target="_blank" rel="noopener noreferrer" size="sm">
+            {order.newsUrl}
+          </Anchor>
+        ) : (
+          <Text size="sm">{order.newsUrl}</Text>
+        )}
       </Stack>
 
       <DetailField label="Ключевые слова для заголовка" value={order.keywords} />
@@ -82,6 +105,11 @@ const CustomerOrderDetails = ({ order }: CustomerOrderDetailsProps) => {
       </Text>
 
       <Stack gap="sm">
+        {order.placedMedia.length === 0 ? (
+          <Text size="sm" c="dimmed">
+            Пока нет назначенных СМИ.
+          </Text>
+        ) : null}
         {order.placedMedia.map((media) => (
           <Group key={media.id} justify="space-between" align="center" wrap="wrap">
             <Group gap="xs" wrap="nowrap">

@@ -17,6 +17,7 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { calculateServicePackagePreview, parsePrice } from '@/shared/lib/pricing';
+import { createPlusSeparatedRenderPill } from '@/shared/ui/multi-select';
 import {
   getBasicServiceSelectOptions,
   type AddMediaFormValues,
@@ -64,6 +65,20 @@ const BASIC_SERVICES_BONUS_HINT =
   'Сначала отметьте «Бонус» в таблице базовых услуг выше — тогда здесь можно будет выбрать услуги для пакета';
 
 const SELECT_BASE_SERVICE_HINT = 'Сначала выберите базовую услугу';
+
+const MultiSelectConnector = () => (
+  <Box pt={28} style={{ flexShrink: 0 }}>
+    <Text size="lg" c="dimmed" fw={500} lh={1} aria-hidden="true">
+      +
+    </Text>
+  </Box>
+);
+
+const MultiSelectConnectorInline = () => (
+  <Text size="lg" c="dimmed" fw={500} lh={1} pb={8} aria-hidden="true">
+    +
+  </Text>
+);
 
 type FieldHintTooltipProps = {
   label: string;
@@ -302,8 +317,11 @@ const ServicePackageCard = ({
                     hasDiscountOptions ? 'Выберите услугу' : 'Отметьте «Скидка» в таблице базовых услуг'
                   }
                   disabled={!hasDiscountOptions}
+                  renderPill={createPlusSeparatedRenderPill(servicePackage.baseServiceKeys)}
                 />
               </FieldHintTooltip>
+
+              <MultiSelectConnector />
 
               <FieldHintTooltip
                 label={discountedSectionHint}
@@ -329,6 +347,7 @@ const ServicePackageCard = ({
                         placeholder={discountedPlaceholder}
                         disabled={discountedSectionDisabled}
                         style={{ flex: 1, minWidth: 180 }}
+                        renderPill={createPlusSeparatedRenderPill(item.serviceKeys)}
                       />
                       <NumberInput
                         label={itemIndex === 0 ? 'Скидка' : undefined}
@@ -409,8 +428,12 @@ const ServicePackageCard = ({
                       : 'Отметьте «Бонус» в таблице базовых услуг'
                   }
                   disabled={!hasBonusOptions}
+                  renderPill={createPlusSeparatedRenderPill(servicePackage.serviceKeys)}
                 />
               </FieldHintTooltip>
+
+              <MultiSelectConnectorInline />
+
               <FieldHintTooltip
                 label={BASIC_SERVICES_BONUS_HINT}
                 active={!hasBonusOptions}
@@ -431,6 +454,7 @@ const ServicePackageCard = ({
                       : 'Отметьте «Бонус» в таблице базовых услуг'
                   }
                   disabled={!hasBonusOptions}
+                  renderPill={createPlusSeparatedRenderPill(servicePackage.bonusServiceKeys)}
                 />
               </FieldHintTooltip>
             </Group>

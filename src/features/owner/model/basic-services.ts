@@ -72,7 +72,7 @@ export const getPlacementTypeId = (
 };
 
 export const BUILTIN_BASIC_SERVICES_CONFIG: BasicServiceItemConfig[] = [
-  ...PLACEMENT_TYPE_CONFIGS,
+  PLACEMENT_TYPE_CONFIGS[0]!,
   {
     id: 'telegram',
     label: 'ТГ',
@@ -81,33 +81,6 @@ export const BUILTIN_BASIC_SERVICES_CONFIG: BasicServiceItemConfig[] = [
     defaultMaxChars: 5000,
     defaultHeadline: 50,
     defaultPrice: 5_000,
-  },
-  {
-    id: 'vk',
-    label: 'VK',
-    group: 'social',
-    isCustom: false,
-    defaultMaxChars: 5000,
-    defaultHeadline: 50,
-    defaultPrice: 4_500,
-  },
-  {
-    id: 'odnoklassniki',
-    label: 'OK',
-    group: 'social',
-    isCustom: false,
-    defaultMaxChars: 5000,
-    defaultHeadline: 50,
-    defaultPrice: 4_000,
-  },
-  {
-    id: 'max',
-    label: 'MAX',
-    group: 'social',
-    isCustom: false,
-    defaultMaxChars: 5000,
-    defaultHeadline: 50,
-    defaultPrice: 4_000,
   },
 ];
 

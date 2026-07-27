@@ -194,25 +194,6 @@ const BasicServicesTable = ({
       },
     },
     {
-      key: 'bonus',
-      title: 'Бонус',
-      render: (config: BasicServiceItemConfig) => {
-        const row = values.values[config.id];
-
-        return (
-          <Group justify="center">
-            <Checkbox
-              aria-label={`${config.label} — бонус`}
-              checked={row?.bonus ?? false}
-              onChange={(event) =>
-                updateRow(config.id, { bonus: event.currentTarget.checked })
-              }
-            />
-          </Group>
-        );
-      },
-    },
-    {
       key: 'discount',
       title: 'Скидка',
       render: (config: BasicServiceItemConfig) => {
@@ -225,6 +206,25 @@ const BasicServicesTable = ({
               checked={row?.discount ?? false}
               onChange={(event) =>
                 updateRow(config.id, { discount: event.currentTarget.checked })
+              }
+            />
+          </Group>
+        );
+      },
+    },
+    {
+      key: 'bonus',
+      title: 'Бонус',
+      render: (config: BasicServiceItemConfig) => {
+        const row = values.values[config.id];
+
+        return (
+          <Group justify="center">
+            <Checkbox
+              aria-label={`${config.label} — бонус`}
+              checked={row?.bonus ?? false}
+              onChange={(event) =>
+                updateRow(config.id, { bonus: event.currentTarget.checked })
               }
             />
           </Group>
@@ -289,7 +289,7 @@ const BasicServicesTable = ({
         <Stack gap="xs">
           <Group align="center" wrap="wrap" gap="lg">
             <Checkbox
-              label="Применять скидку агентству"
+              label="Применять скидку площадке"
               checked={agencyDiscount.enabled}
               onChange={(event) =>
                 onAgencyDiscountChange({
@@ -315,7 +315,7 @@ const BasicServicesTable = ({
                 max={100}
                 disabled={!agencyDiscount.enabled}
                 w={120}
-                aria-label="Процент скидки агентству"
+                aria-label="Процент скидки площадке"
               />
             </Group>
           </Group>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   EMPTY_ADD_MEDIA_FORM,
+  FEDERAL_MEDIA_COVERAGE,
   getSocialItems,
   sanitizePricingSelections,
   syncSocialNetworksWithBasicServices,
@@ -18,7 +19,19 @@ const useAddMediaForm = (initialValues: AddMediaFormValues = EMPTY_ADD_MEDIA_FOR
     field: K,
     value: AddMediaFormValues[K],
   ) => {
-    setValues((current) => ({ ...current, [field]: value }));
+    setValues((current) => {
+      const next = { ...current, [field]: value };
+
+      if (field === 'coverage') {
+        next.region = '';
+
+        if (value === FEDERAL_MEDIA_COVERAGE) {
+          next.city = '';
+        }
+      }
+
+      return next;
+    });
   };
 
   const applyBasicServicesUpdate = (

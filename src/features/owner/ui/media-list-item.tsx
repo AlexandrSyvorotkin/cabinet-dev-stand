@@ -1,6 +1,7 @@
 import { Button, Group, Paper, Stack, Text } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import type { OwnerMediaItem } from '../model/media';
+import { isInternationalMedia, isRegionalMedia } from '../model/add-media-form';
 import { MediaPricingSummaryView } from './media-pricing-summary';
 
 type MediaListItemProps = {
@@ -16,6 +17,11 @@ const MediaListItem = ({ item, index, onSendToModeration, onDelete, canEdit }: M
   const showCreatedActions = item.tab === 'created' && (onSendToModeration || canEdit);
   const showActions = showCreatedActions || Boolean(onDelete);
 
+  const locationLabel =
+    isRegionalMedia(data.coverage) || isInternationalMedia(data.coverage)
+      ? [data.region, data.city].filter(Boolean).join(', ')
+      : data.region;
+
   return (
     <Paper withBorder p="md" radius="md">
       <Stack gap="md">
@@ -28,7 +34,7 @@ const MediaListItem = ({ item, index, onSendToModeration, onDelete, canEdit }: M
               {data.url || 'Сайт не указан'}
             </Text>
             <Text size="sm">
-              {data.trafficReach || 'Охваты не указаны'} · {data.region} · {data.coverage}
+              {data.trafficReach || 'Охваты не указаны'} · {locationLabel} · {data.coverage}
             </Text>
             <Text size="sm">
               Статус:{' '}

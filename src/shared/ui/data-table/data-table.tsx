@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from 'react';
-import { ActionIcon, Center, Table, Text } from '@mantine/core';
+import { ActionIcon, Center, Group, Table, Text, UnstyledButton } from '@mantine/core';
 
 type DataTableColumn<T> = {
   key: string;
@@ -74,15 +74,17 @@ const DataTable = <T,>({
               <Table.Tr>
                 <Table.Td colSpan={columns.length} p={6} bg="gray.0">
                   <Center>
-                    <ActionIcon
-                      variant="light"
-                      size="md"
-                      radius="xl"
+                    <UnstyledButton
                       onClick={section.onAdd}
                       aria-label={section.addAriaLabel ?? 'Добавить'}
                     >
-                      <PlusIcon />
-                    </ActionIcon>
+                      <Group gap="xs" wrap="nowrap">
+                        <ActionIcon variant="light" size="md" radius="xl" component="span">
+                          <PlusIcon />
+                        </ActionIcon>
+                        <Text size="sm">{section.addAriaLabel ?? 'Добавить'}</Text>
+                      </Group>
+                    </UnstyledButton>
                   </Center>
                 </Table.Td>
               </Table.Tr>

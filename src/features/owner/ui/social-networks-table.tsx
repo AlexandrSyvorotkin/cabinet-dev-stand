@@ -1,8 +1,12 @@
-import { Group, NumberInput, Text, TextInput } from '@mantine/core';
+import { Badge, Checkbox, Group, NumberInput, Stack, Text, TextInput } from '@mantine/core';
 import { SocialPlatformIcon } from '@/shared/ui/social-platform-select';
 import { DataTable } from '@/shared/ui/data-table';
 import { getSocialPlatformId, type BasicServiceItemConfig } from '../model/basic-services';
-import type { SocialNetworksValues } from '../model/social-networks';
+import {
+  isSocialPlatformActive,
+  requiresRknCompliance,
+  type SocialNetworksValues,
+} from '../model/social-networks';
 
 type SocialNetworksTableProps = {
   socialItems: BasicServiceItemConfig[];
@@ -27,6 +31,14 @@ const SocialNetworksTable = ({
       },
     });
   };
+
+  const showRknNumberColumn = socialItems.some((config) => {
+    const row = values.platforms[config.id];
+
+    return (
+      requiresRknCompliance(row?.reachOrSubscribers ?? '') && (row?.rknRegistered ?? false)
+    );
+  });
 
   const columns = [
     {
@@ -54,6 +66,21 @@ const SocialNetworksTable = ({
       },
     },
     {
+      key: 'link',
+      title: 'Ссылка',
+      render: (config: BasicServiceItemConfig) => {
+        const row = values.platforms[config.id];
+
+        return (
+          <TextInput
+            value={row?.link ?? ''}
+            onChange={(event) => updateRow(config.id, { link: event.currentTarget.value })}
+            placeholder="https://"
+          />
+        );
+      },
+    },
+    {
       key: 'reachOrSubscribers',
       title: 'Посещаемость / подписчики',
       render: (config: BasicServiceItemConfig) => {
@@ -73,17 +100,125 @@ const SocialNetworksTable = ({
       },
     },
     {
-      key: 'link',
-      title: 'Ссылка',
+      key: 'rknRegistered',
+      title: 'Регистрация в РКН',
+      render: (config: BasicServiceItemConfig) => {
+        const row = values.platforms[config.id];
+        const requiresRkn = requiresRknCompliance(row?.reachOrSubscribers ?? '');
+
+        if (!requiresRkn) {
+          return (
+            <Text size="sm" c="dimmed">
+              —
+            </Text>
+          );
+        }
+
+        return (
+          <Checkbox
+            label="Зарегистрирован"
+            checked={row?.rknRegistered ?? false}
+            onChange={(event) => {
+              const checked = event.currentTarget.checked;
+
+              updateRow(config.id, {
+                rknRegistered: checked,
+                rknNumber: checked ? row?.rknNumber ?? '' : '',
+              });
+            }}
+          />
+        );
+      },
+    },
+    {
+      key: 'rknApplication',
+      title: 'Заявление',
+      render: (config: BasicServiceItemConfig) => {
+        const row = values.platforms[config.id];
+        const requiresRkn = requiresRknCompliance(row?.reachOrSubscribers ?? '');
+
+        if (!requiresRkn) {
+          return (
+            <Text size="sm" c="dimmed">
+              —
+            </Text>
+          );
+        }
+
+        return (
+          <Stack gap={4}>
+            <Checkbox
+              label="Подано заявление"
+              checked={row?.rknApplicationSubmitted ?? false}
+              onChange={(event) =>
+                updateRow(config.id, {
+                  rknApplicationSubmitted: event.currentTarget.checked,
+                  rknNotSubmitted: event.currentTarget.checked ? false : row?.rknNotSubmitted,
+                })
+              }
+            />
+            <Checkbox
+              label="Не подавал"
+              checked={row?.rknNotSubmitted ?? false}
+              onChange={(event) =>
+                updateRow(config.id, {
+                  rknNotSubmitted: event.currentTarget.checked,
+                  rknApplicationSubmitted: event.currentTarget.checked
+                    ? false
+                    : row?.rknApplicationSubmitted,
+                })
+              }
+            />
+          </Stack>
+        );
+      },
+    },
+    ...(showRknNumberColumn
+      ? [
+          {
+            key: 'rknNumber',
+            title: 'Номер из РКН',
+            render: (config: BasicServiceItemConfig) => {
+              const row = values.platforms[config.id];
+              const requiresRkn = requiresRknCompliance(row?.reachOrSubscribers ?? '');
+
+              if (!requiresRkn || !row?.rknRegistered) {
+                return (
+                  <Text size="sm" c="dimmed">
+                    —
+                  </Text>
+                );
+              }
+
+              return (
+                <TextInput
+                  value={row.rknNumber}
+                  onChange={(event) =>
+                    updateRow(config.id, { rknNumber: event.currentTarget.value })
+                  }
+                  placeholder="Номер регистрации"
+                />
+              );
+            },
+          },
+        ]
+      : []),
+    {
+      key: 'status',
+      title: 'Статус',
       render: (config: BasicServiceItemConfig) => {
         const row = values.platforms[config.id];
 
+        if (!row) {
+          return null;
+        }
+
+        const isActive = isSocialPlatformActive(row);
+
         return (
-          <TextInput
-            value={row?.link ?? ''}
-            onChange={(event) => updateRow(config.id, { link: event.currentTarget.value })}
-            placeholder="https://"
-          />
+          <Badge color={isActive ? 'green' : 'gray'} variant="light">
+            {isActive ? 'Активно' : 'Неактивно'}
+          </Badge>
         );
       },
     },

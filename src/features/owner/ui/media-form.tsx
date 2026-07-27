@@ -1,7 +1,9 @@
 import {
+  Alert,
   Checkbox,
   Divider,
   Group,
+  MultiSelect,
   Paper,
   Select,
   SimpleGrid,
@@ -10,11 +12,18 @@ import {
   Title,
 } from '@mantine/core';
 import {
+  getMediaThemeSelectValue,
+  isInternationalMedia,
+  isRegionalMedia,
+  MEDIA_CIS_COUNTRIES,
   MEDIA_COVERAGE_LEVELS,
   MEDIA_REGIONS,
+  MEDIA_THEME_OPTIONS,
+  normalizeMediaThemeSelection,
   type AddMediaFormValues,
 } from '../model/add-media-form';
 import { getSocialItems } from '../model/basic-services';
+import { hasNonCompliantRknPlatforms } from '../model/social-networks';
 import { BasicServicesTable } from './basic-services-table';
 import { PricingModifiersSection, ServicePackagesSection } from './pricing-rules-section';
 import { SocialNetworksTable } from './social-networks-table';
@@ -35,6 +44,11 @@ const MediaForm = ({
   onBasicServicesChange,
   onPricingRulesChange,
 }: MediaFormProps) => {
+  const showRegionalFields = isRegionalMedia(values.coverage);
+  const showInternationalFields = isInternationalMedia(values.coverage);
+  const showLocationFields = showRegionalFields || showInternationalFields;
+  const showRknAlert = hasNonCompliantRknPlatforms(values.socialNetworks.platforms);
+
   return (
     <>
       <Paper withBorder p="md" radius="md">
@@ -65,18 +79,51 @@ const MediaForm = ({
                 onChange={(event) => onFieldChange('trafficReach', event.currentTarget.value)}
               />
               <Select
-                label="Регион"
-                data={MEDIA_REGIONS}
-                value={values.region}
-                onChange={(value) => onFieldChange('region', value ?? '')}
-              />
-              <Select
                 label="Тип СМИ"
-                data={MEDIA_COVERAGE_LEVELS}
+                data={[...MEDIA_COVERAGE_LEVELS]}
                 value={values.coverage}
                 onChange={(value) => onFieldChange('coverage', value ?? '')}
               />
+              {showLocationFields ? (
+                <>
+                  {showRegionalFields ? (
+                    <Select
+                      label="Регион"
+                      placeholder="Выберите регион"
+                      data={[...MEDIA_REGIONS]}
+                      value={values.region || null}
+                      onChange={(value) => onFieldChange('region', value ?? '')}
+                    />
+                  ) : (
+                    <Select
+                      label="Страна"
+                      placeholder="Выберите страну"
+                      data={[...MEDIA_CIS_COUNTRIES]}
+                      value={values.region || null}
+                      onChange={(value) => onFieldChange('region', value ?? '')}
+                    />
+                  )}
+                  <TextInput
+                    label="Город"
+                    placeholder={showInternationalFields ? 'Например: Астана' : 'Например: Барнаул'}
+                    value={values.city}
+                    onChange={(event) => onFieldChange('city', event.currentTarget.value)}
+                  />
+                </>
+              ) : null}
             </SimpleGrid>
+
+            <MultiSelect
+              label="Тема СМИ"
+              placeholder="Выберите темы"
+              data={[...MEDIA_THEME_OPTIONS]}
+              value={getMediaThemeSelectValue(values.themes)}
+              onChange={(selected) =>
+                onFieldChange('themes', normalizeMediaThemeSelection(selected, values.themes))
+              }
+              searchable
+              clearable
+            />
           </Stack>
 
           <Divider />
@@ -124,6 +171,13 @@ const MediaForm = ({
                 />
               </Group>
             </Group>
+            {showRknAlert ? (
+              <Alert color="orange" title="Требуется регистрация в РКН">
+                При достижении 10 000 подписчиков необходимо зарегистрироваться в РКН и указать
+                номер регистрации. Запись останется неактивной, пока номер не внесён. При
+                отсутствии регистрации аккаунт может быть деактивирован.
+              </Alert>
+            ) : null}
             <SocialNetworksTable
               socialItems={getSocialItems(values.basicServices)}
               values={values.socialNetworks}

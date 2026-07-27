@@ -4,7 +4,7 @@ import {
 } from '../model/add-media-form';
 import type { BasicServiceRowValues } from '../model/basic-services';
 import { createMediaItem, type OwnerMediaItem } from '../model/media';
-import type { SocialNetworksValues } from '../model/social-networks';
+import type { SocialNetworkRowValues, SocialNetworksValues } from '../model/social-networks';
 
 const cloneForm = (): AddMediaFormValues => structuredClone(EMPTY_ADD_MEDIA_FORM);
 
@@ -26,18 +26,23 @@ const patchBasicServiceRows = (
 
 const patchSocialNetworks = (
   form: AddMediaFormValues,
-  patch: Partial<SocialNetworksValues> & {
-    platforms?: Record<string, { reachOrSubscribers: string; link: string }>;
+  patch: Omit<Partial<SocialNetworksValues>, 'platforms'> & {
+    platforms?: Record<string, Partial<SocialNetworkRowValues>>;
   },
 ): AddMediaFormValues => ({
   ...form,
   socialNetworks: {
     ...form.socialNetworks,
     ...patch,
-    platforms: {
-      ...form.socialNetworks.platforms,
-      ...(patch.platforms ?? {}),
-    },
+    platforms: Object.fromEntries(
+      Object.entries({
+        ...form.socialNetworks.platforms,
+        ...(patch.platforms ?? {}),
+      }).map(([id, row]) => [
+        id,
+        { ...form.socialNetworks.platforms[id], ...row },
+      ]),
+    ),
   },
 });
 
@@ -49,6 +54,7 @@ const createAltaiInfoForm = (): AddMediaFormValues => {
     name: 'Алтай-инфо',
     url: 'https://altai-info.ru',
     region: 'Республика Алтай',
+    city: 'Горно-Алтайск',
     coverage: 'Региональное',
     trafficReach: '45 000 в месяц',
     pricingRules: {
@@ -125,6 +131,7 @@ const createPermGazetaForm = (): AddMediaFormValues => {
     name: 'Пермская газета',
     url: 'https://perm-gazeta.ru',
     region: 'Пермский край',
+    city: 'Пермь',
     coverage: 'Региональное',
     trafficReach: '120 000 в месяц',
     pricingRules: {
@@ -249,7 +256,8 @@ const createFederalPortalForm = (): AddMediaFormValues => {
     ...form,
     name: 'Федеральный аналитический портал',
     url: 'https://federal-analytics.ru',
-    region: 'Санкт-Петербург',
+    region: 'Казахстан',
+    city: 'Астана',
     coverage: 'Международное',
     trafficReach: '800 000 в месяц',
     reportsEnabled: true,

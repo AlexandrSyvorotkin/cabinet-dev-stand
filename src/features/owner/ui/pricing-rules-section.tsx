@@ -24,6 +24,17 @@ import {
 } from '../model/add-media-form';
 import { getBasicServiceLabelsMap } from '../model/basic-services';
 import {
+  BASIC_SERVICES_BONUS_SELECTOR_HINT,
+  BASIC_SERVICES_DISCOUNT_SELECTOR_HINT,
+} from '../model/basic-services-hints';
+import {
+  PACKAGE_KIND_ACCENT,
+  PACKAGE_KIND_COLORS,
+  PACKAGE_KIND_HEADER_BG,
+  PACKAGE_KIND_PANEL_BORDER,
+  type PackageKind,
+} from '../model/package-kind-theme';
+import {
   createPricingAddon,
   createDiscountedServiceItem,
   createServicePackage,
@@ -58,13 +69,37 @@ type ServicePackageCardProps = {
 
 const formatAmount = (value: number): string => value.toLocaleString('ru-RU');
 
-const BASIC_SERVICES_DISCOUNT_HINT =
-  'Сначала отметьте «Скидка» в таблице базовых услуг выше — тогда здесь можно будет выбрать услуги для пакета';
-
-const BASIC_SERVICES_BONUS_HINT =
-  'Сначала отметьте «Бонус» в таблице базовых услуг выше — тогда здесь можно будет выбрать услуги для пакета';
-
 const SELECT_BASE_SERVICE_HINT = 'Сначала выберите базовую услугу';
+
+const packageKindLabel = (kind: PackageKind, text: string) => (
+  <Text span size="sm" fw={500} c={PACKAGE_KIND_COLORS[kind]}>
+    {text}
+  </Text>
+);
+
+type PackageKindPanelProps = {
+  kind: PackageKind;
+  children: ReactNode;
+};
+
+const PackageKindPanel = ({ kind, children }: PackageKindPanelProps) => (
+  <Box
+    p="md"
+    mt="xs"
+    style={{
+      background: PACKAGE_KIND_HEADER_BG[kind],
+      border: `1px solid ${PACKAGE_KIND_PANEL_BORDER[kind]}`,
+      borderRadius: 'var(--mantine-radius-md)',
+    }}
+  >
+    <Text size="xs" c={PACKAGE_KIND_COLORS[kind]} mb="sm">
+      {kind === 'discount'
+        ? 'Здесь выбираются услуги из колонки «Скидка» таблицы выше'
+        : 'Здесь выбираются услуги из колонки «Бонус» таблицы выше'}
+    </Text>
+    {children}
+  </Box>
+);
 
 const MultiSelectConnector = () => (
   <Box pt={28} style={{ flexShrink: 0 }}>
@@ -258,7 +293,7 @@ const ServicePackageCard = ({
   const hasBonusOptions = bonusOptions.length > 0;
   const discountedSectionDisabled = !hasDiscountOptions || !hasBaseService;
   const discountedSectionHint = !hasDiscountOptions
-    ? BASIC_SERVICES_DISCOUNT_HINT
+    ? BASIC_SERVICES_DISCOUNT_SELECTOR_HINT
     : SELECT_BASE_SERVICE_HINT;
   const discountedPlaceholder = !hasDiscountOptions
     ? 'Отметьте «Скидка» в таблице базовых услуг'
@@ -267,7 +302,16 @@ const ServicePackageCard = ({
       : 'Сначала выберите базовую услугу';
 
   return (
-    <Paper withBorder p="md" radius="md" bg="gray.0">
+    <Paper
+      withBorder
+      p="md"
+      radius="md"
+      bg="gray.0"
+      style={{
+        borderLeftWidth: 4,
+        borderLeftColor: PACKAGE_KIND_ACCENT[servicePackage.kind],
+      }}
+    >
       <Stack gap="sm">
         <Group justify="space-between" align="flex-end" wrap="wrap">
           <TextInput
@@ -282,21 +326,30 @@ const ServicePackageCard = ({
           </Button>
         </Group>
 
-        <Tabs value={servicePackage.kind} onChange={handleKindChange}>
+        <Tabs
+          value={servicePackage.kind}
+          onChange={handleKindChange}
+          color={
+            servicePackage.kind === 'discount'
+              ? PACKAGE_KIND_COLORS.discount
+              : PACKAGE_KIND_COLORS.bonus
+          }
+        >
           <Tabs.List>
             <Tabs.Tab value="discount">Скидка</Tabs.Tab>
             <Tabs.Tab value="bonus">Бонус</Tabs.Tab>
           </Tabs.List>
 
-          <Tabs.Panel value="discount" pt="md">
+          <Tabs.Panel value="discount" pt="xs">
+            <PackageKindPanel kind="discount">
             <Group align="flex-start" wrap="nowrap" gap="md">
               <FieldHintTooltip
-                label={BASIC_SERVICES_DISCOUNT_HINT}
+                label={BASIC_SERVICES_DISCOUNT_SELECTOR_HINT}
                 active={!hasDiscountOptions}
                 style={{ flex: 1, minWidth: 240 }}
               >
                 <MultiSelect
-                  label="Базовая услуга"
+                  label={packageKindLabel('discount', 'Базовая услуга')}
                   data={discountOptions}
                   value={servicePackage.baseServiceKeys}
                   onChange={(value) => {
@@ -317,7 +370,10 @@ const ServicePackageCard = ({
                     hasDiscountOptions ? 'Выберите услугу' : 'Отметьте «Скидка» в таблице базовых услуг'
                   }
                   disabled={!hasDiscountOptions}
-                  renderPill={createPlusSeparatedRenderPill(servicePackage.baseServiceKeys)}
+                  renderPill={createPlusSeparatedRenderPill(
+                    servicePackage.baseServiceKeys,
+                    PACKAGE_KIND_COLORS.discount,
+                  )}
                 />
               </FieldHintTooltip>
 
@@ -336,7 +392,11 @@ const ServicePackageCard = ({
                   {servicePackage.discountedServices.map((item, itemIndex) => (
                     <Group key={item.id} align="flex-end" wrap="nowrap">
                       <MultiSelect
-                        label={itemIndex === 0 ? 'Услуги со скидкой' : undefined}
+                        label={
+                          itemIndex === 0
+                            ? packageKindLabel('discount', 'Услуги со скидкой')
+                            : undefined
+                        }
                         data={discountOptions}
                         value={item.serviceKeys}
                         onChange={(value) =>
@@ -347,10 +407,13 @@ const ServicePackageCard = ({
                         placeholder={discountedPlaceholder}
                         disabled={discountedSectionDisabled}
                         style={{ flex: 1, minWidth: 180 }}
-                        renderPill={createPlusSeparatedRenderPill(item.serviceKeys)}
+                        renderPill={createPlusSeparatedRenderPill(
+                          item.serviceKeys,
+                          PACKAGE_KIND_COLORS.discount,
+                        )}
                       />
                       <NumberInput
-                        label={itemIndex === 0 ? 'Скидка' : undefined}
+                        label={itemIndex === 0 ? packageKindLabel('discount', 'Скидка') : undefined}
                         suffix="%"
                         value={item.percent}
                         onChange={(value) =>
@@ -366,7 +429,7 @@ const ServicePackageCard = ({
                       <Tooltip
                         label={
                           !hasDiscountOptions
-                            ? BASIC_SERVICES_DISCOUNT_HINT
+                            ? BASIC_SERVICES_DISCOUNT_SELECTOR_HINT
                             : !hasBaseService
                               ? SELECT_BASE_SERVICE_HINT
                               : servicePackage.discountedServices.length <= 1
@@ -398,6 +461,7 @@ const ServicePackageCard = ({
                   <Button
                     size="xs"
                     variant="light"
+                    color={PACKAGE_KIND_COLORS.discount}
                     onClick={addDiscountedService}
                     disabled={discountedSectionDisabled}
                   >
@@ -406,17 +470,19 @@ const ServicePackageCard = ({
                 </Stack>
               </FieldHintTooltip>
             </Group>
+            </PackageKindPanel>
           </Tabs.Panel>
 
-          <Tabs.Panel value="bonus" pt="md">
+          <Tabs.Panel value="bonus" pt="xs">
+            <PackageKindPanel kind="bonus">
             <Group align="flex-end" wrap="wrap">
               <FieldHintTooltip
-                label={BASIC_SERVICES_BONUS_HINT}
+                label={BASIC_SERVICES_BONUS_SELECTOR_HINT}
                 active={!hasBonusOptions}
                 style={{ flex: 1, minWidth: 240 }}
               >
                 <MultiSelect
-                  label="Услуги для условия"
+                  label={packageKindLabel('bonus', 'Услуги для условия')}
                   data={bonusOptions}
                   value={servicePackage.serviceKeys}
                   onChange={(value) =>
@@ -428,19 +494,22 @@ const ServicePackageCard = ({
                       : 'Отметьте «Бонус» в таблице базовых услуг'
                   }
                   disabled={!hasBonusOptions}
-                  renderPill={createPlusSeparatedRenderPill(servicePackage.serviceKeys)}
+                  renderPill={createPlusSeparatedRenderPill(
+                    servicePackage.serviceKeys,
+                    PACKAGE_KIND_COLORS.bonus,
+                  )}
                 />
               </FieldHintTooltip>
 
               <MultiSelectConnectorInline />
 
               <FieldHintTooltip
-                label={BASIC_SERVICES_BONUS_HINT}
+                label={BASIC_SERVICES_BONUS_SELECTOR_HINT}
                 active={!hasBonusOptions}
                 style={{ flex: 1, minWidth: 240 }}
               >
                 <MultiSelect
-                  label="Бонусные услуги"
+                  label={packageKindLabel('bonus', 'Бонусные услуги')}
                   data={bonusOptions}
                   value={servicePackage.bonusServiceKeys}
                   onChange={(value) =>
@@ -454,17 +523,29 @@ const ServicePackageCard = ({
                       : 'Отметьте «Бонус» в таблице базовых услуг'
                   }
                   disabled={!hasBonusOptions}
-                  renderPill={createPlusSeparatedRenderPill(servicePackage.bonusServiceKeys)}
+                  renderPill={createPlusSeparatedRenderPill(
+                    servicePackage.bonusServiceKeys,
+                    PACKAGE_KIND_COLORS.bonus,
+                  )}
                 />
               </FieldHintTooltip>
             </Group>
+            </PackageKindPanel>
           </Tabs.Panel>
         </Tabs>
 
         {servicePackage.kind === 'discount' ? (
-          <Paper withBorder p="sm" radius="md" bg="white">
+          <Paper
+            withBorder
+            p="sm"
+            radius="md"
+            style={{
+              background: PACKAGE_KIND_HEADER_BG.discount,
+              borderColor: PACKAGE_KIND_PANEL_BORDER.discount,
+            }}
+          >
             <Stack gap="xs">
-              <Text size="sm" fw={600}>
+              <Text size="sm" fw={600} c={PACKAGE_KIND_COLORS.discount}>
                 Расчёт
               </Text>
               <ServicePackagePreview

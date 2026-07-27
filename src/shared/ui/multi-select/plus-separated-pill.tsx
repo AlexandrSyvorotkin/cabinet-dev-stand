@@ -1,7 +1,7 @@
-import { Group, Pill, Text, type ComboboxRenderPillInput } from '@mantine/core';
+import { Group, Pill, Text, type ComboboxRenderPillInput, type MantineColor } from '@mantine/core';
 
 const createPlusSeparatedRenderPill =
-  (selectedValues: string[]) =>
+  (selectedValues: string[], color?: MantineColor) =>
   ({ option, onRemove, disabled }: ComboboxRenderPillInput) => {
     const value = option?.value.toString() ?? '';
     const label = option?.label ?? value;
@@ -10,7 +10,7 @@ const createPlusSeparatedRenderPill =
 
     return (
       <Group gap={4} wrap="nowrap" display="inline-flex" align="center">
-        <Pill withRemoveButton onRemove={onRemove} disabled={disabled}>
+        <Pill withRemoveButton onRemove={onRemove} disabled={disabled} color={color}>
           {label}
         </Pill>
         {showPlus ? (

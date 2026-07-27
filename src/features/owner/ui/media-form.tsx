@@ -8,6 +8,7 @@ import {
   Select,
   SimpleGrid,
   Stack,
+  Text,
   TextInput,
   Title,
 } from '@mantine/core';
@@ -22,6 +23,7 @@ import {
   normalizeMediaThemeSelection,
   type AddMediaFormValues,
 } from '../model/add-media-form';
+import { BASIC_SERVICES_PACKAGES_SECTION_HINT } from '../model/basic-services-hints';
 import { getSocialItems } from '../model/basic-services';
 import { hasNonCompliantRknPlatforms } from '../model/social-networks';
 import { BasicServicesTable } from './basic-services-table';
@@ -129,7 +131,12 @@ const MediaForm = ({
           <Divider />
 
           <Stack gap="md">
-            <Title order={5}>Базовые услуги</Title>
+            <Stack gap={4}>
+              <Title order={5}>Базовые услуги</Title>
+              <Text size="sm" c="dimmed">
+                {BASIC_SERVICES_PACKAGES_SECTION_HINT}
+              </Text>
+            </Stack>
             <BasicServicesTable
               values={values.basicServices}
               onChange={onBasicServicesChange}

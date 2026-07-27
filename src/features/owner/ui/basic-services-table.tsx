@@ -16,6 +16,14 @@ import {
 import { InfoHintIcon } from '@/shared/ui/info-hint-icon';
 import { SocialPlatformSelect } from '@/shared/ui/social-platform-select';
 import { DataTable } from '@/shared/ui/data-table';
+import {
+  BASIC_SERVICE_BONUS_COLUMN_HINT,
+  BASIC_SERVICE_DISCOUNT_COLUMN_HINT,
+} from '../model/basic-services-hints';
+import {
+  PACKAGE_KIND_COLORS,
+  PACKAGE_KIND_HEADER_BG,
+} from '../model/package-kind-theme';
 import type { AgencyDiscount } from '../model/pricing';
 import {
   addCustomPlacementService,
@@ -195,7 +203,19 @@ const BasicServicesTable = ({
     },
     {
       key: 'discount',
-      title: 'Скидка',
+      headerStyle: { background: PACKAGE_KIND_HEADER_BG.discount },
+      getCellStyle: (config: BasicServiceItemConfig) =>
+        values.values[config.id]?.discount
+          ? { background: PACKAGE_KIND_HEADER_BG.discount }
+          : undefined,
+      title: (
+        <Group gap={6} wrap="nowrap" justify="center">
+          <Text span size="sm" fw={600} c={PACKAGE_KIND_COLORS.discount}>
+            Скидка
+          </Text>
+          <InfoHintIcon label={BASIC_SERVICE_DISCOUNT_COLUMN_HINT} />
+        </Group>
+      ),
       render: (config: BasicServiceItemConfig) => {
         const row = values.values[config.id];
 
@@ -204,6 +224,7 @@ const BasicServicesTable = ({
             <Checkbox
               aria-label={`${config.label} — скидка`}
               checked={row?.discount ?? false}
+              color={PACKAGE_KIND_COLORS.discount}
               onChange={(event) =>
                 updateRow(config.id, { discount: event.currentTarget.checked })
               }
@@ -214,7 +235,19 @@ const BasicServicesTable = ({
     },
     {
       key: 'bonus',
-      title: 'Бонус',
+      headerStyle: { background: PACKAGE_KIND_HEADER_BG.bonus },
+      getCellStyle: (config: BasicServiceItemConfig) =>
+        values.values[config.id]?.bonus
+          ? { background: PACKAGE_KIND_HEADER_BG.bonus }
+          : undefined,
+      title: (
+        <Group gap={6} wrap="nowrap" justify="center">
+          <Text span size="sm" fw={600} c={PACKAGE_KIND_COLORS.bonus}>
+            Бонус
+          </Text>
+          <InfoHintIcon label={BASIC_SERVICE_BONUS_COLUMN_HINT} />
+        </Group>
+      ),
       render: (config: BasicServiceItemConfig) => {
         const row = values.values[config.id];
 
@@ -223,6 +256,7 @@ const BasicServicesTable = ({
             <Checkbox
               aria-label={`${config.label} — бонус`}
               checked={row?.bonus ?? false}
+              color={PACKAGE_KIND_COLORS.bonus}
               onChange={(event) =>
                 updateRow(config.id, { bonus: event.currentTarget.checked })
               }

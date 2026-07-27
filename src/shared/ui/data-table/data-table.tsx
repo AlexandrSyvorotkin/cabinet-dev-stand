@@ -1,10 +1,12 @@
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, type CSSProperties, type ReactNode } from 'react';
 import { ActionIcon, Center, Group, Table, Text, UnstyledButton } from '@mantine/core';
 
 type DataTableColumn<T> = {
   key: string;
   title: ReactNode;
   render: (row: T) => ReactNode;
+  headerStyle?: CSSProperties;
+  getCellStyle?: (row: T) => CSSProperties | undefined;
 };
 
 type DataTableSection<T> = {
@@ -44,7 +46,9 @@ const DataTable = <T,>({
       <Table.Thead>
         <Table.Tr>
           {columns.map((column) => (
-            <Table.Th key={column.key}>{column.title}</Table.Th>
+            <Table.Th key={column.key} style={column.headerStyle}>
+              {column.title}
+            </Table.Th>
           ))}
         </Table.Tr>
       </Table.Thead>
@@ -65,7 +69,9 @@ const DataTable = <T,>({
             {section.rows.map((row) => (
               <Table.Tr key={getRowKey(row)}>
                 {columns.map((column) => (
-                  <Table.Td key={column.key}>{column.render(row)}</Table.Td>
+                  <Table.Td key={column.key} style={column.getCellStyle?.(row)}>
+                    {column.render(row)}
+                  </Table.Td>
                 ))}
               </Table.Tr>
             ))}

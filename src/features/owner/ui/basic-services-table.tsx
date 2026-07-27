@@ -9,11 +9,9 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { applyAgencyDiscountToPrice, parsePrice } from '@/shared/lib/pricing';
-import {
-  getPlacementTypeCharsTooltip,
-  PLACEMENT_CHARS_TOOLTIP,
-} from '@/shared/model/placement-types';
+import { PLACEMENT_CHARS_TOOLTIP } from '@/shared/model/placement-types';
 import { InfoHintIcon } from '@/shared/ui/info-hint-icon';
+import { PlacementTypeSelect } from '@/shared/ui/placement-type-select';
 import { SocialPlatformSelect } from '@/shared/ui/social-platform-select';
 import { DataTable } from '@/shared/ui/data-table';
 import {
@@ -28,15 +26,14 @@ import type { AgencyDiscount } from '../model/pricing';
 import {
   addCustomPlacementService,
   addCustomSocialService,
-  canAddSocialPlatform,
   canRemoveBasicService,
   getPlacementItems,
   getPlacementTypeId,
   getSocialItems,
   getSocialPlatformId,
-  getUsedSocialPlatformIds,
   removeBasicService,
   updateBasicServiceLabel,
+  updatePlacementType,
   updateSocialPlatform,
   type BasicServiceItemConfig,
   type BasicServicesState,
@@ -85,7 +82,18 @@ const BasicServicesTable = ({
   const columns = [
     {
       key: 'label',
-      title: 'Услуга',
+      title: 'Услуга (название)',
+      render: (config: BasicServiceItemConfig) => (
+        <TextInput
+          value={config.label}
+          onChange={(event) => updateLabel(config.id, event.currentTarget.value)}
+          placeholder="Название"
+        />
+      ),
+    },
+    {
+      key: 'placementType',
+      title: 'Тип размещения',
       render: (config: BasicServiceItemConfig) => {
         if (config.group === 'social') {
           return (
@@ -94,38 +102,17 @@ const BasicServicesTable = ({
               onChange={(platformId) =>
                 onChange(updateSocialPlatform(values, config.id, platformId))
               }
-              excludeIds={getUsedSocialPlatformIds(values, config.id)}
             />
           );
         }
-
-        if (config.isCustom) {
-          return (
-            <TextInput
-              value={config.label}
-              onChange={(event) => updateLabel(config.id, event.currentTarget.value)}
-              placeholder="Название"
-            />
-          );
-        }
-
-        const placementTypeId = getPlacementTypeId(config);
-        const charsTooltip = getPlacementTypeCharsTooltip(placementTypeId);
 
         return (
-          <Group gap={6} wrap="nowrap" align="center">
-            <Stack gap={2}>
-              <Text size="sm" fw={500}>
-                {config.label}
-              </Text>
-              {config.hint ? (
-                <Text size="xs" c="dimmed">
-                  {config.hint}
-                </Text>
-              ) : null}
-            </Stack>
-            {charsTooltip ? <InfoHintIcon label={charsTooltip} /> : null}
-          </Group>
+          <PlacementTypeSelect
+            value={getPlacementTypeId(config)}
+            onChange={(placementTypeId) =>
+              onChange(updatePlacementType(values, config.id, placementTypeId))
+            }
+          />
         );
       },
     },
@@ -304,7 +291,6 @@ const BasicServicesTable = ({
       sections={[
         {
           key: 'placement',
-          title: 'Тип размещения',
           rows: placementRows,
           onAdd: () => onChange(addCustomPlacementService(values)),
           addAriaLabel: 'Добавить тип размещения',
@@ -313,9 +299,7 @@ const BasicServicesTable = ({
           key: 'social',
           title: 'Соцсети',
           rows: socialRows,
-          onAdd: canAddSocialPlatform(values)
-            ? () => onChange(addCustomSocialService(values))
-            : undefined,
+          onAdd: () => onChange(addCustomSocialService(values)),
           addAriaLabel: 'Добавить соцсеть',
         },
       ]}

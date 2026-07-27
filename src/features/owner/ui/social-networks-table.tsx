@@ -1,7 +1,13 @@
-import { Badge, Checkbox, Group, NumberInput, Stack, Text, TextInput } from '@mantine/core';
-import { SocialPlatformIcon } from '@/shared/ui/social-platform-select';
+import { Badge, Checkbox, NumberInput, Stack, Text, TextInput } from '@mantine/core';
+import { SocialPlatformSelect } from '@/shared/ui/social-platform-select';
 import { DataTable } from '@/shared/ui/data-table';
-import { getSocialPlatformId, type BasicServiceItemConfig } from '../model/basic-services';
+import {
+  getSocialPlatformId,
+  updateBasicServiceLabel,
+  updateSocialPlatform,
+  type BasicServiceItemConfig,
+  type BasicServicesState,
+} from '../model/basic-services';
 import {
   isSocialPlatformActive,
   requiresRknCompliance,
@@ -10,12 +16,16 @@ import {
 
 type SocialNetworksTableProps = {
   socialItems: BasicServiceItemConfig[];
+  basicServices: BasicServicesState;
+  onBasicServicesChange: (basicServices: BasicServicesState) => void;
   values: SocialNetworksValues;
   onChange: (values: SocialNetworksValues) => void;
 };
 
 const SocialNetworksTable = ({
   socialItems,
+  basicServices,
+  onBasicServicesChange,
   values,
   onChange,
 }: SocialNetworksTableProps) => {
@@ -32,38 +42,33 @@ const SocialNetworksTable = ({
     });
   };
 
-  const showRknNumberColumn = socialItems.some((config) => {
-    const row = values.platforms[config.id];
-
-    return (
-      requiresRknCompliance(row?.reachOrSubscribers ?? '') && (row?.rknRegistered ?? false)
-    );
-  });
+  const updateLabel = (id: string, label: string) => {
+    onBasicServicesChange(updateBasicServiceLabel(basicServices, id, label));
+  };
 
   const columns = [
     {
       key: 'label',
+      title: 'Услуга (название)',
+      render: (config: BasicServiceItemConfig) => (
+        <TextInput
+          value={config.label}
+          onChange={(event) => updateLabel(config.id, event.currentTarget.value)}
+          placeholder="Название"
+        />
+      ),
+    },
+    {
+      key: 'platform',
       title: 'Соцсеть',
-      render: (config: BasicServiceItemConfig) => {
-        const platformId = getSocialPlatformId(config);
-
-        if (!platformId) {
-          return (
-            <Text size="sm" c="dimmed">
-              Не выбрано
-            </Text>
-          );
-        }
-
-        return (
-          <Group gap="xs" wrap="nowrap">
-            <SocialPlatformIcon platformId={platformId} />
-            <Text size="sm" fw={500}>
-              {config.label}
-            </Text>
-          </Group>
-        );
-      },
+      render: (config: BasicServiceItemConfig) => (
+        <SocialPlatformSelect
+          value={getSocialPlatformId(config)}
+          onChange={(platformId) =>
+            onBasicServicesChange(updateSocialPlatform(basicServices, config.id, platformId))
+          }
+        />
+      ),
     },
     {
       key: 'link',
@@ -131,8 +136,8 @@ const SocialNetworksTable = ({
       },
     },
     {
-      key: 'rknApplication',
-      title: 'Заявление',
+      key: 'rknFollowUp',
+      title: 'Заявление / номер РКН',
       render: (config: BasicServiceItemConfig) => {
         const row = values.platforms[config.id];
         const requiresRkn = requiresRknCompliance(row?.reachOrSubscribers ?? '');
@@ -142,6 +147,18 @@ const SocialNetworksTable = ({
             <Text size="sm" c="dimmed">
               —
             </Text>
+          );
+        }
+
+        if (row?.rknRegistered) {
+          return (
+            <TextInput
+              value={row.rknNumber}
+              onChange={(event) =>
+                updateRow(config.id, { rknNumber: event.currentTarget.value })
+              }
+              placeholder="Номер регистрации"
+            />
           );
         }
 
@@ -173,36 +190,6 @@ const SocialNetworksTable = ({
         );
       },
     },
-    ...(showRknNumberColumn
-      ? [
-          {
-            key: 'rknNumber',
-            title: 'Номер из РКН',
-            render: (config: BasicServiceItemConfig) => {
-              const row = values.platforms[config.id];
-              const requiresRkn = requiresRknCompliance(row?.reachOrSubscribers ?? '');
-
-              if (!requiresRkn || !row?.rknRegistered) {
-                return (
-                  <Text size="sm" c="dimmed">
-                    —
-                  </Text>
-                );
-              }
-
-              return (
-                <TextInput
-                  value={row.rknNumber}
-                  onChange={(event) =>
-                    updateRow(config.id, { rknNumber: event.currentTarget.value })
-                  }
-                  placeholder="Номер регистрации"
-                />
-              );
-            },
-          },
-        ]
-      : []),
     {
       key: 'status',
       title: 'Статус',

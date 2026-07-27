@@ -1,5 +1,4 @@
 import {
-  getSocialPlatformById,
   isSocialPlatformId,
   SOCIAL_PLATFORMS,
   type SocialPlatformId,
@@ -112,15 +111,21 @@ export const createEmptyBasicServices = (): BasicServicesState => {
   };
 };
 
-export const createCustomPlacementService = (order: number): BasicServiceItemConfig => ({
-  id: `placement-${createId()}`,
-  label: `Тип размещения ${order}`,
-  group: 'placement',
-  isCustom: true,
-  defaultMaxChars: 1500,
-  defaultHeadline: 50,
-  defaultPrice: null,
-});
+export const createCustomPlacementService = (_order: number): BasicServiceItemConfig => {
+  const typeConfig = getPlacementTypeConfig('news');
+
+  return {
+    id: `placement-${createId()}`,
+    label: '',
+    group: 'placement',
+    isCustom: true,
+    placementTypeId: 'news',
+    defaultMaxChars: typeConfig.defaultMaxChars,
+    defaultHeadline: typeConfig.defaultHeadline,
+    defaultPrice: typeConfig.defaultPrice,
+    hint: typeConfig.hint,
+  };
+};
 
 export const createCustomSocialService = (): BasicServiceItemConfig => ({
   id: `social-${createId()}`,
@@ -206,6 +211,7 @@ export const updatePlacementType = (
   placementTypeId: PlacementTypeId,
 ): BasicServicesState => {
   const typeConfig = getPlacementTypeConfig(placementTypeId);
+  const currentRow = state.values[id];
 
   return {
     ...state,
@@ -214,7 +220,6 @@ export const updatePlacementType = (
         ? {
             ...item,
             placementTypeId,
-            label: typeConfig.label,
             defaultMaxChars: typeConfig.defaultMaxChars,
             defaultHeadline: typeConfig.defaultHeadline,
             defaultPrice: typeConfig.defaultPrice,
@@ -222,6 +227,19 @@ export const updatePlacementType = (
           }
         : item,
     ),
+    values: currentRow
+      ? {
+          ...state.values,
+          [id]: {
+            ...currentRow,
+            maxChars:
+              typeConfig.defaultMaxChars != null ? String(typeConfig.defaultMaxChars) : '',
+            headlineLimit:
+              typeConfig.defaultHeadline != null ? String(typeConfig.defaultHeadline) : '',
+            price: typeConfig.defaultPrice != null ? String(typeConfig.defaultPrice) : '',
+          },
+        }
+      : state.values,
   };
 };
 
@@ -252,16 +270,10 @@ export const updateSocialPlatform = (
   state: BasicServicesState,
   id: string,
   platformId: SocialPlatformId,
-): BasicServicesState => {
-  const platform = getSocialPlatformById(platformId);
-
-  return {
-    ...state,
-    items: state.items.map((item) =>
-      item.id === id ? { ...item, platformId, label: platform.label } : item,
-    ),
-  };
-};
+): BasicServicesState => ({
+  ...state,
+  items: state.items.map((item) => (item.id === id ? { ...item, platformId } : item)),
+});
 
 export const canAddSocialPlatform = (state: BasicServicesState): boolean =>
   getSocialItems(state).length < SOCIAL_PLATFORMS.length;

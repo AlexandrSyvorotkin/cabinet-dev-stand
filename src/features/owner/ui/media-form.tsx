@@ -1,8 +1,6 @@
 import {
   Alert,
-  Checkbox,
   Divider,
-  Group,
   MultiSelect,
   Paper,
   Select,
@@ -153,31 +151,7 @@ const MediaForm = ({
           <Divider />
 
           <Stack gap="md">
-            <Group justify="space-between" align="center" wrap="wrap">
-              <Title order={5}>Соцсети</Title>
-              <Group gap="md">
-                <Checkbox
-                  label="Фото"
-                  checked={values.socialNetworks.photo}
-                  onChange={(event) =>
-                    onFieldChange('socialNetworks', {
-                      ...values.socialNetworks,
-                      photo: event.currentTarget.checked,
-                    })
-                  }
-                />
-                <Checkbox
-                  label="Видео"
-                  checked={values.socialNetworks.video}
-                  onChange={(event) =>
-                    onFieldChange('socialNetworks', {
-                      ...values.socialNetworks,
-                      video: event.currentTarget.checked,
-                    })
-                  }
-                />
-              </Group>
-            </Group>
+            <Title order={5}>Соцсети</Title>
             {showRknAlert ? (
               <Alert color="orange" title="Требуется регистрация в РКН">
                 При достижении 10 000 подписчиков необходимо зарегистрироваться в РКН и указать
@@ -187,6 +161,8 @@ const MediaForm = ({
             ) : null}
             <SocialNetworksTable
               socialItems={getSocialItems(values.basicServices)}
+              basicServices={values.basicServices}
+              onBasicServicesChange={onBasicServicesChange}
               values={values.socialNetworks}
               onChange={(socialNetworks) => onFieldChange('socialNetworks', socialNetworks)}
             />

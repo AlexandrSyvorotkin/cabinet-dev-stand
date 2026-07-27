@@ -1,10 +1,21 @@
 import maxIcon from '@/shared/assets/social-icons/Max colored.svg';
 import odnoklassnikiIcon from '@/shared/assets/social-icons/OK.svg';
+import rutubeIcon from '@/shared/assets/social-icons/rutube.svg';
 import telegramIcon from '@/shared/assets/social-icons/telegram.svg';
+import tiktokIcon from '@/shared/assets/social-icons/tiktok.svg';
+import twitchIcon from '@/shared/assets/social-icons/twitch.svg';
 import vkIcon from '@/shared/assets/social-icons/vk.svg';
 import dzenIcon from '@/shared/assets/social-icons/ya-zen-logo.svg';
 
-export type SocialPlatformId = 'telegram' | 'vk' | 'odnoklassniki' | 'max' | 'dzen';
+export type SocialPlatformId =
+  | 'telegram'
+  | 'vk'
+  | 'odnoklassniki'
+  | 'max'
+  | 'dzen'
+  | 'twitch'
+  | 'rutube'
+  | 'tiktok';
 
 export type SocialPlatform = {
   id: SocialPlatformId;
@@ -18,6 +29,9 @@ export const SOCIAL_PLATFORMS: SocialPlatform[] = [
   { id: 'odnoklassniki', label: 'OK', icon: odnoklassnikiIcon },
   { id: 'max', label: 'MAX', icon: maxIcon },
   { id: 'dzen', label: 'Дзен', icon: dzenIcon },
+  { id: 'twitch', label: 'Twitch', icon: twitchIcon },
+  { id: 'rutube', label: 'Rutube', icon: rutubeIcon },
+  { id: 'tiktok', label: 'TikTok', icon: tiktokIcon },
 ];
 
 export const SOCIAL_PLATFORM_IDS = SOCIAL_PLATFORMS.map((platform) => platform.id);

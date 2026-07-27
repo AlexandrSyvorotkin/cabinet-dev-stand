@@ -10,6 +10,7 @@ import {
 } from '../model/basic-services';
 import {
   isSocialPlatformActive,
+  parseSubscriberCount,
   requiresRknCompliance,
   type SocialNetworksValues,
 } from '../model/social-networks';
@@ -90,10 +91,11 @@ const SocialNetworksTable = ({
       title: 'Посещаемость / подписчики',
       render: (config: BasicServiceItemConfig) => {
         const row = values.platforms[config.id];
+        const subscriberCount = parseSubscriberCount(row?.reachOrSubscribers ?? '');
 
         return (
           <NumberInput
-            value={row?.reachOrSubscribers ? Number(row.reachOrSubscribers) : ''}
+            value={subscriberCount > 0 ? subscriberCount : ''}
             onChange={(value) =>
               updateRow(config.id, { reachOrSubscribers: String(value ?? '') })
             }

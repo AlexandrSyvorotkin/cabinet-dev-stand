@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   Alert,
+  Anchor,
   Button,
   Paper,
   PasswordInput,
@@ -9,12 +10,13 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, Link } from '@tanstack/react-router';
 import { login } from './lib/login';
 import { MOCK_PASSWORD, MOCK_USERS } from './mock/users';
 import {
   getDefaultRouteForRole,
   saveAuthSession,
+  ROUTES,
   USER_ROLE_LABELS,
 } from '@/shared/model';
 
@@ -93,6 +95,13 @@ const AuthPage = () => {
           ))}
         </Stack>
       </Alert>
+
+      <Text size="sm">
+        Нет аккаунта?{' '}
+        <Anchor component={Link} to={ROUTES.AUTH_REGISTER}>
+          Зарегистрироваться
+        </Anchor>
+      </Text>
     </Stack>
   );
 };

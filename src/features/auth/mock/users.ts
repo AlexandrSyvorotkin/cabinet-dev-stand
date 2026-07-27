@@ -19,13 +19,6 @@ const MOCK_USERS: MockUser[] = [
     password: MOCK_PASSWORD,
   },
   {
-    id: 'customer-1',
-    email: 'customer@company.ru',
-    name: 'Анна Смирнова',
-    role: USER_ROLES.CUSTOMER,
-    password: MOCK_PASSWORD,
-  },
-  {
     id: 'moderator-1',
     email: 'moderator@media.ru',
     name: 'Сергей Козлов',

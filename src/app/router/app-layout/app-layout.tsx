@@ -27,11 +27,6 @@ const NAV_ITEMS: NavItem[] = [
     roles: [USER_ROLES.OWNER],
   },
   {
-    label: 'Заказы',
-    to: ROUTES.CUSTOMER,
-    roles: [USER_ROLES.CUSTOMER],
-  },
-  {
     label: 'Кабинет модератора',
     to: ROUTES.MODERATOR,
     roles: [USER_ROLES.MODERATOR],

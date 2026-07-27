@@ -46,8 +46,6 @@ const getDefaultRouteForRole = (role: UserRole): string => {
   switch (role) {
     case USER_ROLES.OWNER:
       return ROUTES.OWNER;
-    case USER_ROLES.CUSTOMER:
-      return ROUTES.CUSTOMER;
     case USER_ROLES.MODERATOR:
       return ROUTES.MODERATOR;
   }

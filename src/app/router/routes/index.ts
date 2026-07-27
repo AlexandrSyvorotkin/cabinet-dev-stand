@@ -1,7 +1,3 @@
-import { customerIndexRoute } from './customer-index-route';
-import { customerLayoutRoute } from './customer-layout-route';
-import { customerOrderEditRoute } from './customer-order-edit-route';
-import { customerOrderNewRoute } from './customer-order-new-route';
 import { homeRoute } from './home-route';
 import { moderatorRoute } from './moderator-route';
 import { ownerIndexRoute } from './owner-index-route';
@@ -19,20 +15,11 @@ export const appRoutes = [
     ownerMediaAddRoute,
     ownerMediaEditRoute,
   ]),
-  customerLayoutRoute.addChildren([
-    customerIndexRoute,
-    customerOrderNewRoute,
-    customerOrderEditRoute,
-  ]),
   moderatorRoute,
   profileRoute,
 ];
 
 export {
-  customerIndexRoute,
-  customerLayoutRoute,
-  customerOrderEditRoute,
-  customerOrderNewRoute,
   homeRoute,
   moderatorRoute,
   ownerIndexRoute,

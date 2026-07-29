@@ -28,6 +28,12 @@ const getSession = (): AuthSession | null => {
   return sessionCache;
 };
 
+const ensureValidAccessToken = async (): Promise<string | null> => {
+  const session = getSession();
+
+  return session?.accessToken ?? null;
+};
+
 const isAuthenticated = (): boolean => {
   return sessionCache !== null;
 };
@@ -52,6 +58,7 @@ const getDefaultRouteForRole = (role: UserRole): string => {
 };
 
 export {
+  ensureValidAccessToken,
   getDefaultRouteForRole,
   getSession,
   isAuthenticated,

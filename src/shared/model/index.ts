@@ -7,6 +7,7 @@ export {
   type UserRole,
 } from './roles';
 export {
+  ensureValidAccessToken,
   getDefaultRouteForRole,
   getSession,
   isAuthenticated,

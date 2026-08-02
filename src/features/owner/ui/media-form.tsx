@@ -8,6 +8,7 @@ import {
   Stack,
   Text,
   TextInput,
+  Textarea,
   Title,
 } from '@mantine/core';
 import {
@@ -123,6 +124,15 @@ const MediaForm = ({
               }
               searchable
               clearable
+            />
+
+            <Textarea
+              label="Описание"
+              placeholder="Кратко опишите СМИ, аудиторию и особенности площадки"
+              value={values.description}
+              onChange={(event) => onFieldChange('description', event.currentTarget.value)}
+              minRows={4}
+              autosize
             />
           </Stack>
 

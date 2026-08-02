@@ -10,6 +10,9 @@ import { ensureValidAccessToken } from '@/shared/model/session';
 
 const PUBLIC_OPERATIONS = new Set(['login', 'Refresh']);
 
+/** Включить, когда авторизация будет готова */
+const GRAPHQL_AUTH_ENABLED = false;
+
 const httpLink = new HttpLink({
   uri: env.graphQlUrl,
 });
@@ -34,7 +37,7 @@ const authLink = setContext(async ({ operationName }, { headers }) => {
 });
 
 const client = new ApolloClient({
-  link: ApolloLink.from([authLink, httpLink]),
+  link: GRAPHQL_AUTH_ENABLED ? ApolloLink.from([authLink, httpLink]) : httpLink,
   cache: new InMemoryCache(),
 });
 

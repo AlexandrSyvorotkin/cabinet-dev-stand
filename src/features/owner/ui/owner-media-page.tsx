@@ -161,7 +161,6 @@ const OwnerMediaPage = () => {
                             tab.value === 'created' ? handleSendToModeration : undefined
                           }
                           onDelete={handleDelete}
-                          canEdit={tab.value === 'created'}
                         />
                       ))}
                     </Stack>

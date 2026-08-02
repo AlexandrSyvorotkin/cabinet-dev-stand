@@ -3,6 +3,7 @@ import { moderatorRoute } from './moderator-route';
 import { ownerIndexRoute } from './owner-index-route';
 import { ownerLayoutRoute } from './owner-layout-route';
 import { ownerMediaAddRoute } from './owner-media-add-route';
+import { ownerMediaDetailRoute } from './owner-media-detail-route';
 import { ownerMediaEditRoute } from './owner-media-edit-route';
 import { ownerMediaRoute } from './owner-media-route';
 import { profileRoute } from './profile-route';
@@ -13,6 +14,7 @@ export const appRoutes = [
     ownerIndexRoute,
     ownerMediaRoute,
     ownerMediaAddRoute,
+    ownerMediaDetailRoute,
     ownerMediaEditRoute,
   ]),
   moderatorRoute,
@@ -25,6 +27,7 @@ export {
   ownerIndexRoute,
   ownerLayoutRoute,
   ownerMediaAddRoute,
+  ownerMediaDetailRoute,
   ownerMediaEditRoute,
   ownerMediaRoute,
   profileRoute,

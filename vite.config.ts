@@ -9,6 +9,13 @@ export default defineConfig({
   },
   server: {
     open: '/auth',
+    proxy: {
+      '/graphql': {
+        target: 'https://pwa.phxpro.ru',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
   plugins: [
     react(),

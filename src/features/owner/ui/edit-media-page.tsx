@@ -36,8 +36,14 @@ const EditMediaPage = () => {
     return (
       <Stack gap="md">
         <Text c="dimmed">Редактирование доступно только для созданных СМИ.</Text>
-        <Button component={Link} to={ROUTES.OWNER_MEDIA} variant="light" w="fit-content">
-          К списку СМИ
+        <Button
+          component={Link}
+          to={ROUTES.OWNER_MEDIA_DETAIL}
+          params={{ mediaId: String(mediaItem.id) }}
+          variant="light"
+          w="fit-content"
+        >
+          К карточке СМИ
         </Button>
       </Stack>
     );
@@ -45,19 +51,23 @@ const EditMediaPage = () => {
 
   const handleSubmit = () => {
     updateMediaItem(mediaItem.id, values);
-    navigate({ to: ROUTES.OWNER_MEDIA });
+    navigate({
+      to: ROUTES.OWNER_MEDIA_DETAIL,
+      params: { mediaId: String(mediaItem.id) },
+    });
   };
 
   return (
     <Stack gap="lg">
       <Button
         component={Link}
-        to={ROUTES.OWNER_MEDIA}
+        to={ROUTES.OWNER_MEDIA_DETAIL}
+        params={{ mediaId: String(mediaItem.id) }}
         variant="subtle"
         w="fit-content"
         px={0}
       >
-        ← К списку СМИ
+        ← К карточке СМИ
       </Button>
 
       <Group justify="space-between" align="flex-end" wrap="wrap">
@@ -72,7 +82,12 @@ const EditMediaPage = () => {
       />
 
       <Group justify="flex-end">
-        <Button component={Link} to={ROUTES.OWNER_MEDIA} variant="default">
+        <Button
+          component={Link}
+          to={ROUTES.OWNER_MEDIA_DETAIL}
+          params={{ mediaId: String(mediaItem.id) }}
+          variant="default"
+        >
           Отмена
         </Button>
         <Button onClick={handleSubmit}>Сохранить</Button>

@@ -1,6 +1,17 @@
+import type {
+  CreateMediaPartnerInput,
+  CreateMediaPromotionInput,
+} from '@/shared/api/graphql';
+import { applyAgencyDiscountToPrice, parsePrice } from '@/shared/lib/pricing';
 import type { BasicServicesState } from './basic-services';
-import { createEmptyBasicServices, type BasicServiceItemConfig } from './basic-services';
-import { createEmptyPricingRules, type PricingRules } from './pricing';
+import {
+  createEmptyBasicServices,
+  getPlacementItems,
+  getSocialItems,
+  getSocialPlatformId,
+  type BasicServiceItemConfig,
+} from './basic-services';
+import { createEmptyPricingRules, type PricingRules, type ServicePackage } from './pricing';
 import {
   createEmptySocialNetworks,
   syncSocialNetworksWithBasicServices,
@@ -76,6 +87,7 @@ export {
 export type AddMediaFormValues = {
   name: string;
   url: string;
+  description: string;
   region: string;
   city: string;
   coverage: string;
@@ -103,6 +115,161 @@ export type MediaBasicServicePayload = BasicServiceItemConfig & {
 
 export type CreateMediaPayload = Omit<AddMediaFormValues, 'basicServices'> & {
   basicServices: MediaBasicServicePayload[];
+};
+
+/** id секций из listAllMediaSections на бэкенде */
+const MEDIA_SECTION_ID = {
+  TELEGRAM: 1,
+  WEB: 2,
+} as const;
+
+const SOCIAL_PLATFORM_SECTION_ID: Partial<Record<string, number>> = {
+  telegram: MEDIA_SECTION_ID.TELEGRAM,
+};
+
+/** Поля формы без отдельного поля в API — уходят в description */
+const buildDescription = (values: AddMediaFormValues): string => {
+  const lines: string[] = [];
+
+  if (values.trafficReach.trim()) lines.push(`Охват: ${values.trafficReach.trim()}`);
+  if (values.coverage.trim()) lines.push(`Тип СМИ: ${values.coverage.trim()}`);
+  if (values.region.trim()) lines.push(`Регион/страна: ${values.region.trim()}`);
+  if (values.city.trim()) lines.push(`Город: ${values.city.trim()}`);
+  if (values.themes.length > 0) lines.push(`Темы: ${values.themes.join(', ')}`);
+
+  const auditory = [
+    values.yandexSearch ? 'Яндекс' : null,
+    values.googleSearch ? 'Google' : null,
+    values.auditoryOther.trim() || null,
+  ].filter(Boolean);
+
+  if (auditory.length > 0) lines.push(`Аудитория: ${auditory.join(', ')}`);
+  if (values.hasErid) lines.push(`ERID: ${values.eridToken.trim() || 'да'}`);
+  if (values.reportsEnabled) lines.push('Отчёты: да');
+  if (values.validityPeriod.trim()) lines.push(`Срок действия: ${values.validityPeriod.trim()}`);
+  if (values.socialNetworks.photo) lines.push('Фото: да');
+  if (values.socialNetworks.video) lines.push('Видео: да');
+
+  for (const item of getSocialItems(values.basicServices)) {
+    const socialRow = values.socialNetworks.platforms[item.id];
+    if (!socialRow) continue;
+
+    const platformLabel = item.label.trim() || getSocialPlatformId(item) || item.id;
+    const socialLines: string[] = [];
+
+    if (socialRow.reachOrSubscribers.trim()) {
+      socialLines.push(`подписчики: ${socialRow.reachOrSubscribers.trim()}`);
+    }
+
+    if (socialRow.rknRegistered && socialRow.rknNumber.trim()) {
+      socialLines.push(`РКН: ${socialRow.rknNumber.trim()}`);
+    } else if (socialRow.rknApplicationSubmitted) {
+      socialLines.push('РКН: заявление подано');
+    } else if (socialRow.rknNotSubmitted) {
+      socialLines.push('РКН: не подано');
+    }
+
+    if (socialLines.length > 0) {
+      lines.push(`${platformLabel}: ${socialLines.join(', ')}`);
+    }
+  }
+
+  return lines.join('\n');
+};
+
+/** Скрин 2 — базовые услуги → CreateMediaOffersInput */
+const mapOffer = (
+  item: BasicServiceItemConfig,
+  basicServices: BasicServicesState,
+  agencyDiscount: PricingRules['agencyDiscount'],
+) => {
+  const price = parsePrice(basicServices.values[item.id]?.price);
+  const priceWithDiscount = applyAgencyDiscountToPrice(price, agencyDiscount);
+
+  return {
+    name: item.label.trim() || 'Услуга',
+    partner_section_id: item.placementTypeId ?? item.platformId ?? item.id,
+    price: price > 0 ? price : null,
+    price_with_discount:
+      agencyDiscount.enabled && priceWithDiscount !== price ? priceWithDiscount : null,
+  };
+};
+
+/** Скрин 1 — ссылки (сайт + соцсети) → media_sections с вложенными offers */
+const mapMediaSections = (values: AddMediaFormValues) => {
+  const { basicServices, socialNetworks, pricingRules } = values;
+  const sections: NonNullable<CreateMediaPartnerInput['media_sections']> = [];
+
+  if (values.url.trim()) {
+    sections.push({
+      media_section_id: MEDIA_SECTION_ID.WEB,
+      title: values.name.trim() || 'Сайт',
+      url: values.url.trim(),
+      offers: getPlacementItems(basicServices).map((item) =>
+        mapOffer(item, basicServices, pricingRules.agencyDiscount),
+      ),
+    });
+  }
+
+  for (const item of getSocialItems(basicServices)) {
+    const platformId = getSocialPlatformId(item);
+    const sectionId = platformId ? SOCIAL_PLATFORM_SECTION_ID[platformId] : undefined;
+    const url = socialNetworks.platforms[item.id]?.link.trim() ?? '';
+
+    if (!sectionId || !url) continue;
+
+    sections.push({
+      media_section_id: sectionId,
+      title: item.label.trim() || platformId || 'Соцсеть',
+      url,
+      offers: [mapOffer(item, basicServices, pricingRules.agencyDiscount)],
+    });
+  }
+
+  return sections;
+};
+
+/** Скрин 3 — пакеты услуг → media_promotions */
+const mapMediaPromotions = (
+  servicePackages: ServicePackage[],
+): CreateMediaPromotionInput[] | undefined => {
+  const promotions = servicePackages
+    .map((servicePackage): CreateMediaPromotionInput | null => {
+      if (servicePackage.baseServiceKeys.length === 0) return null;
+
+      const type = servicePackage.kind === 'bonus' ? 'BONUS' : 'DISCOUNT';
+      const conditions = servicePackage.baseServiceKeys.map((offerId) => ({ offer_id: offerId }));
+      const targets =
+        servicePackage.kind === 'bonus'
+          ? servicePackage.bonusServiceKeys.map((offerId) => ({ offer_id: offerId, value: 100 }))
+          : servicePackage.discountedServices.flatMap((discountedItem) =>
+              discountedItem.serviceKeys.map((offerId) => ({
+                offer_id: offerId,
+                value: discountedItem.percent,
+              })),
+            );
+
+      if (targets.length === 0) return null;
+
+      return { type, logic: 'ALL', conditions, targets };
+    })
+    .filter((promotion): promotion is CreateMediaPromotionInput => promotion != null);
+
+  return promotions.length > 0 ? promotions : undefined;
+};
+
+export const toCreateMediaPartnerInput = (
+  values: AddMediaFormValues,
+): CreateMediaPartnerInput => {
+  const userDescription = values.description.trim();
+  const metadataDescription = buildDescription(values);
+
+  return {
+    name: values.name.trim(),
+    description: userDescription || metadataDescription,
+    media_sections: mapMediaSections(values),
+    media_promotions: mapMediaPromotions(values.pricingRules.servicePackages),
+  };
 };
 
 export const serializeCreateMediaPayload = (values: AddMediaFormValues): CreateMediaPayload => {
@@ -154,6 +321,7 @@ export const EMPTY_ADD_MEDIA_FORM: AddMediaFormValues = (() => {
   return {
     name: '',
     url: '',
+    description: '',
     region: '',
     city: '',
     coverage: FEDERAL_MEDIA_COVERAGE,

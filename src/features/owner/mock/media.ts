@@ -506,8 +506,6 @@ const createFederalPortalForm = (): AddMediaFormValues => {
       city: 'Астана',
       coverage: 'Международное',
       trafficReach: '800 000 в месяц',
-      reportsEnabled: true,
-      validityPeriod: '12 месяцев',
       pricingRules: {
         agencyDiscount: { enabled: true, percent: 12 },
         addons: [

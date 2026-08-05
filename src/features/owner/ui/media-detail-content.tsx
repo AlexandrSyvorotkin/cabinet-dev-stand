@@ -13,7 +13,6 @@ import {
   isRegionalMedia,
   type AddMediaFormValues,
 } from '../model/add-media-form';
-import { formatYesNo } from '../model/order';
 import { MediaPackagesView } from './media-packages-view';
 import { MediaPricesTableView } from './media-prices-table-view';
 import { MediaSocialNetworksView } from './media-social-networks-view';
@@ -31,16 +30,6 @@ const DetailField = ({ label, value }: { label: string; value: string }) => (
     <Text size="sm">{value}</Text>
   </Stack>
 );
-
-const formatAuditory = (data: AddMediaFormValues): string => {
-  const parts = [
-    data.yandexSearch ? 'Яндекс' : null,
-    data.googleSearch ? 'Google' : null,
-    data.auditoryOther.trim() || null,
-  ].filter(Boolean);
-
-  return parts.length > 0 ? parts.join(', ') : 'Не указана';
-};
 
 const MediaDetailContent = ({ data, statusLabel }: MediaDetailContentProps) => {
   const locationLabel =
@@ -83,20 +72,6 @@ const MediaDetailContent = ({ data, statusLabel }: MediaDetailContentProps) => {
             <DetailField
               label="Темы"
               value={data.themes.length > 0 ? data.themes.join(', ') : 'Не указаны'}
-            />
-            <DetailField label="Аудитория" value={formatAuditory(data)} />
-            <DetailField
-              label="ERID"
-              value={
-                data.hasErid
-                  ? data.eridToken.trim() || 'Да'
-                  : 'Не используется'
-              }
-            />
-            <DetailField label="Отчёты" value={formatYesNo(data.reportsEnabled)} />
-            <DetailField
-              label="Срок действия"
-              value={data.validityPeriod.trim() || 'Не указан'}
             />
           </SimpleGrid>
 

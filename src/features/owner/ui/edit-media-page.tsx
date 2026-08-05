@@ -14,12 +14,9 @@ const EditMediaPage = () => {
 
   const mediaItem = mediaItems.find((item) => item.id === Number(mediaId));
 
-  const {
-    values,
-    updateField,
-    handleBasicServicesChange,
-    handlePricingRulesChange,
-  } = useAddMediaForm(mediaItem ? cloneFormValues(mediaItem.data) : undefined);
+  const { form, setCoverage, setBasicServices, setPricingRules } = useAddMediaForm(
+    mediaItem ? cloneFormValues(mediaItem.data) : undefined,
+  );
 
   if (!mediaItem) {
     return (
@@ -49,50 +46,52 @@ const EditMediaPage = () => {
     );
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = form.onSubmit((values) => {
     updateMediaItem(mediaItem.id, values);
     navigate({
       to: ROUTES.OWNER_MEDIA_DETAIL,
       params: { mediaId: String(mediaItem.id) },
     });
-  };
+  });
 
   return (
-    <Stack gap="lg">
-      <Button
-        component={Link}
-        to={ROUTES.OWNER_MEDIA_DETAIL}
-        params={{ mediaId: String(mediaItem.id) }}
-        variant="subtle"
-        w="fit-content"
-        px={0}
-      >
-        ← К карточке СМИ
-      </Button>
-
-      <Group justify="space-between" align="flex-end" wrap="wrap">
-        <Title order={3}>Редактировать СМИ</Title>
-      </Group>
-
-      <MediaForm
-        values={values}
-        onFieldChange={updateField}
-        onBasicServicesChange={handleBasicServicesChange}
-        onPricingRulesChange={handlePricingRulesChange}
-      />
-
-      <Group justify="flex-end">
+    <form onSubmit={handleSubmit}>
+      <Stack gap="lg">
         <Button
           component={Link}
           to={ROUTES.OWNER_MEDIA_DETAIL}
           params={{ mediaId: String(mediaItem.id) }}
-          variant="default"
+          variant="subtle"
+          w="fit-content"
+          px={0}
         >
-          Отмена
+          ← К карточке СМИ
         </Button>
-        <Button onClick={handleSubmit}>Сохранить</Button>
-      </Group>
-    </Stack>
+
+        <Group justify="space-between" align="flex-end" wrap="wrap">
+          <Title order={3}>Редактировать СМИ</Title>
+        </Group>
+
+        <MediaForm
+          form={form}
+          onCoverageChange={setCoverage}
+          onBasicServicesChange={setBasicServices}
+          onPricingRulesChange={setPricingRules}
+        />
+
+        <Group justify="flex-end">
+          <Button
+            component={Link}
+            to={ROUTES.OWNER_MEDIA_DETAIL}
+            params={{ mediaId: String(mediaItem.id) }}
+            variant="default"
+          >
+            Отмена
+          </Button>
+          <Button type="submit">Сохранить</Button>
+        </Group>
+      </Stack>
+    </form>
   );
 };
 

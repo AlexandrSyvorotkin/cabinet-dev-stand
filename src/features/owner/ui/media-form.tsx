@@ -25,26 +25,25 @@ import {
 import { BASIC_SERVICES_PACKAGES_SECTION_HINT } from '../model/basic-services-hints';
 import { getSocialItems } from '../model/basic-services';
 import { hasNonCompliantRknPlatforms } from '../model/social-networks';
+import type { AddMediaForm } from './use-add-media-form';
 import { BasicServicesTable } from './basic-services-table';
 import { PricingModifiersSection, ServicePackagesSection } from './pricing-rules-section';
 import { SocialNetworksTable } from './social-networks-table';
 
 type MediaFormProps = {
-  values: AddMediaFormValues;
-  onFieldChange: <K extends keyof AddMediaFormValues>(
-    field: K,
-    value: AddMediaFormValues[K],
-  ) => void;
+  form: AddMediaForm;
+  onCoverageChange: (coverage: string | null) => void;
   onBasicServicesChange: (basicServices: AddMediaFormValues['basicServices']) => void;
   onPricingRulesChange: (pricingRules: AddMediaFormValues['pricingRules']) => void;
 };
 
 const MediaForm = ({
-  values,
-  onFieldChange,
+  form,
+  onCoverageChange,
   onBasicServicesChange,
   onPricingRulesChange,
 }: MediaFormProps) => {
+  const { values } = form;
   const showRegionalFields = isRegionalMedia(values.coverage);
   const showInternationalFields = isInternationalMedia(values.coverage);
   const showLocationFields = showRegionalFields || showInternationalFields;
@@ -62,28 +61,29 @@ const MediaForm = ({
               <TextInput
                 label="Название СМИ"
                 placeholder="Информационно-аналитический портал"
-                value={values.name}
-                onChange={(event) => onFieldChange('name', event.currentTarget.value)}
-                required
+                withAsterisk
+                key={form.key('name')}
+                {...form.getInputProps('name')}
               />
               <TextInput
                 label="Сайт"
                 placeholder="https://example.com"
-                value={values.url}
-                onChange={(event) => onFieldChange('url', event.currentTarget.value)}
-                required
+                withAsterisk
+                key={form.key('url')}
+                {...form.getInputProps('url')}
               />
               <TextInput
                 label="Охваты"
                 placeholder="Например: 50 000 в месяц"
-                value={values.trafficReach}
-                onChange={(event) => onFieldChange('trafficReach', event.currentTarget.value)}
+                key={form.key('trafficReach')}
+                {...form.getInputProps('trafficReach')}
               />
               <Select
                 label="Тип СМИ"
                 data={[...MEDIA_COVERAGE_LEVELS]}
-                value={values.coverage}
-                onChange={(value) => onFieldChange('coverage', value ?? '')}
+                key={form.key('coverage')}
+                {...form.getInputProps('coverage')}
+                onChange={onCoverageChange}
               />
               {showLocationFields ? (
                 <>
@@ -92,23 +92,29 @@ const MediaForm = ({
                       label="Регион"
                       placeholder="Выберите регион"
                       data={[...MEDIA_REGIONS]}
+                      withAsterisk
+                      key={form.key('region')}
+                      {...form.getInputProps('region')}
                       value={values.region || null}
-                      onChange={(value) => onFieldChange('region', value ?? '')}
+                      onChange={(value) => form.setFieldValue('region', value ?? '')}
                     />
                   ) : (
                     <Select
                       label="Страна"
                       placeholder="Выберите страну"
                       data={[...MEDIA_CIS_COUNTRIES]}
+                      withAsterisk
+                      key={form.key('region')}
+                      {...form.getInputProps('region')}
                       value={values.region || null}
-                      onChange={(value) => onFieldChange('region', value ?? '')}
+                      onChange={(value) => form.setFieldValue('region', value ?? '')}
                     />
                   )}
                   <TextInput
                     label="Город"
                     placeholder={showInternationalFields ? 'Например: Астана' : 'Например: Барнаул'}
-                    value={values.city}
-                    onChange={(event) => onFieldChange('city', event.currentTarget.value)}
+                    key={form.key('city')}
+                    {...form.getInputProps('city')}
                   />
                 </>
               ) : null}
@@ -118,21 +124,26 @@ const MediaForm = ({
               label="Тема СМИ"
               placeholder="Выберите темы"
               data={[...MEDIA_THEME_OPTIONS]}
-              value={getMediaThemeSelectValue(values.themes)}
-              onChange={(selected) =>
-                onFieldChange('themes', normalizeMediaThemeSelection(selected, values.themes))
-              }
               searchable
               clearable
+              key={form.key('themes')}
+              value={getMediaThemeSelectValue(values.themes)}
+              onChange={(selected) =>
+                form.setFieldValue(
+                  'themes',
+                  normalizeMediaThemeSelection(selected, values.themes),
+                )
+              }
+              error={form.errors.themes}
             />
 
             <Textarea
               label="Описание"
               placeholder="Кратко опишите СМИ, аудиторию и особенности площадки"
-              value={values.description}
-              onChange={(event) => onFieldChange('description', event.currentTarget.value)}
               minRows={4}
               autosize
+              key={form.key('description')}
+              {...form.getInputProps('description')}
             />
           </Stack>
 
@@ -174,7 +185,7 @@ const MediaForm = ({
               basicServices={values.basicServices}
               onBasicServicesChange={onBasicServicesChange}
               values={values.socialNetworks}
-              onChange={(socialNetworks) => onFieldChange('socialNetworks', socialNetworks)}
+              onChange={(socialNetworks) => form.setFieldValue('socialNetworks', socialNetworks)}
             />
           </Stack>
         </Stack>

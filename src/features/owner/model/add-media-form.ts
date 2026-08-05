@@ -93,13 +93,6 @@ export type AddMediaFormValues = {
   coverage: string;
   themes: string[];
   trafficReach: string;
-  yandexSearch: boolean;
-  googleSearch: boolean;
-  auditoryOther: string;
-  hasErid: boolean;
-  eridToken: string;
-  reportsEnabled: boolean;
-  validityPeriod: string;
   pricingRules: PricingRules;
   basicServices: BasicServicesState;
   socialNetworks: SocialNetworksValues;
@@ -136,17 +129,6 @@ const buildDescription = (values: AddMediaFormValues): string => {
   if (values.region.trim()) lines.push(`Регион/страна: ${values.region.trim()}`);
   if (values.city.trim()) lines.push(`Город: ${values.city.trim()}`);
   if (values.themes.length > 0) lines.push(`Темы: ${values.themes.join(', ')}`);
-
-  const auditory = [
-    values.yandexSearch ? 'Яндекс' : null,
-    values.googleSearch ? 'Google' : null,
-    values.auditoryOther.trim() || null,
-  ].filter(Boolean);
-
-  if (auditory.length > 0) lines.push(`Аудитория: ${auditory.join(', ')}`);
-  if (values.hasErid) lines.push(`ERID: ${values.eridToken.trim() || 'да'}`);
-  if (values.reportsEnabled) lines.push('Отчёты: да');
-  if (values.validityPeriod.trim()) lines.push(`Срок действия: ${values.validityPeriod.trim()}`);
   if (values.socialNetworks.photo) lines.push('Фото: да');
   if (values.socialNetworks.video) lines.push('Видео: да');
 
@@ -327,13 +309,6 @@ export const EMPTY_ADD_MEDIA_FORM: AddMediaFormValues = (() => {
     coverage: FEDERAL_MEDIA_COVERAGE,
     themes: [],
     trafficReach: '',
-    yandexSearch: false,
-    googleSearch: false,
-    auditoryOther: '',
-    hasErid: false,
-    eridToken: '',
-    reportsEnabled: false,
-    validityPeriod: '',
     pricingRules: createEmptyPricingRules(),
     basicServices,
     socialNetworks: syncSocialNetworksWithBasicServices(socialIds, createEmptySocialNetworks()),

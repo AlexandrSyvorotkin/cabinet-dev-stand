@@ -5,18 +5,21 @@ import {
   getSocialPlatformId,
   updateBasicServiceLabel,
   updateSocialPlatform,
-  type BasicServiceItemConfig,
+  type BasicServiceItem,
   type BasicServicesState,
 } from '../model/basic-services';
 import {
+  getSocialNetworkById,
   isSocialPlatformActive,
   parseSubscriberCount,
   requiresRknCompliance,
+  updateSocialNetworkItem,
+  type SocialNetworkRowValues,
   type SocialNetworksValues,
 } from '../model/social-networks';
 
 type SocialNetworksTableProps = {
-  socialItems: BasicServiceItemConfig[];
+  socialItems: BasicServiceItem[];
   basicServices: BasicServicesState;
   onBasicServicesChange: (basicServices: BasicServicesState) => void;
   values: SocialNetworksValues;
@@ -30,17 +33,8 @@ const SocialNetworksTable = ({
   values,
   onChange,
 }: SocialNetworksTableProps) => {
-  const updateRow = (
-    id: string,
-    patch: Partial<SocialNetworksValues['platforms'][string]>,
-  ) => {
-    onChange({
-      ...values,
-      platforms: {
-        ...values.platforms,
-        [id]: { ...values.platforms[id], ...patch },
-      },
-    });
+  const updateRow = (id: string, patch: Partial<SocialNetworkRowValues>) => {
+    onChange(updateSocialNetworkItem(values, id, patch));
   };
 
   const updateLabel = (id: string, label: string) => {
@@ -51,7 +45,7 @@ const SocialNetworksTable = ({
     {
       key: 'label',
       title: 'Услуга (название)',
-      render: (config: BasicServiceItemConfig) => (
+      render: (config: BasicServiceItem) => (
         <TextInput
           value={config.label}
           onChange={(event) => updateLabel(config.id, event.currentTarget.value)}
@@ -62,7 +56,7 @@ const SocialNetworksTable = ({
     {
       key: 'platform',
       title: 'Соцсеть',
-      render: (config: BasicServiceItemConfig) => (
+      render: (config: BasicServiceItem) => (
         <SocialPlatformSelect
           value={getSocialPlatformId(config)}
           onChange={(platformId) =>
@@ -74,8 +68,8 @@ const SocialNetworksTable = ({
     {
       key: 'link',
       title: 'Ссылка',
-      render: (config: BasicServiceItemConfig) => {
-        const row = values.platforms[config.id];
+      render: (config: BasicServiceItem) => {
+        const row = getSocialNetworkById(values, config.id);
 
         return (
           <TextInput
@@ -89,8 +83,8 @@ const SocialNetworksTable = ({
     {
       key: 'reachOrSubscribers',
       title: 'Посещаемость / подписчики',
-      render: (config: BasicServiceItemConfig) => {
-        const row = values.platforms[config.id];
+      render: (config: BasicServiceItem) => {
+        const row = getSocialNetworkById(values, config.id);
         const subscriberCount = parseSubscriberCount(row?.reachOrSubscribers ?? '');
 
         return (
@@ -109,8 +103,8 @@ const SocialNetworksTable = ({
     {
       key: 'rknRegistered',
       title: 'Регистрация в РКН',
-      render: (config: BasicServiceItemConfig) => {
-        const row = values.platforms[config.id];
+      render: (config: BasicServiceItem) => {
+        const row = getSocialNetworkById(values, config.id);
         const requiresRkn = requiresRknCompliance(row?.reachOrSubscribers ?? '');
 
         if (!requiresRkn) {
@@ -140,8 +134,8 @@ const SocialNetworksTable = ({
     {
       key: 'rknFollowUp',
       title: 'Заявление / номер РКН',
-      render: (config: BasicServiceItemConfig) => {
-        const row = values.platforms[config.id];
+      render: (config: BasicServiceItem) => {
+        const row = getSocialNetworkById(values, config.id);
         const requiresRkn = requiresRknCompliance(row?.reachOrSubscribers ?? '');
 
         if (!requiresRkn) {
@@ -195,8 +189,8 @@ const SocialNetworksTable = ({
     {
       key: 'status',
       title: 'Статус',
-      render: (config: BasicServiceItemConfig) => {
-        const row = values.platforms[config.id];
+      render: (config: BasicServiceItem) => {
+        const row = getSocialNetworkById(values, config.id);
 
         if (!row) {
           return null;

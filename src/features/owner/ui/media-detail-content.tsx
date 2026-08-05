@@ -37,7 +37,7 @@ const MediaDetailContent = ({ data, statusLabel }: MediaDetailContentProps) => {
       ? [data.region, data.city].filter(Boolean).join(', ')
       : data.region;
   const socialItems = getSocialItems(data.basicServices);
-  const enabledAddons = data.pricingRules.addons.filter(
+  const enabledAddons = data.servicePackage.addons.filter(
     (addon) => addon.enabled && addon.name.trim(),
   );
 
@@ -91,7 +91,7 @@ const MediaDetailContent = ({ data, statusLabel }: MediaDetailContentProps) => {
           <Title order={4}>Базовые услуги и цены</Title>
           <MediaPricesTableView
             basicServices={data.basicServices}
-            agencyDiscount={data.pricingRules.agencyDiscount}
+            agencyDiscount={data.servicePackage.agencyDiscount}
           />
         </Stack>
       </Paper>
@@ -112,7 +112,7 @@ const MediaDetailContent = ({ data, statusLabel }: MediaDetailContentProps) => {
           <Title order={4}>Пакеты услуг</Title>
           <MediaPackagesView
             basicServices={data.basicServices}
-            pricingRules={data.pricingRules}
+            servicePackage={data.servicePackage}
           />
         </Stack>
       </Paper>

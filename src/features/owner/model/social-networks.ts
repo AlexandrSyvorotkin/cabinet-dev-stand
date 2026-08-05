@@ -1,6 +1,7 @@
 export const RKN_SUBSCRIBER_THRESHOLD = 10_000;
 
-export type SocialNetworkRowValues = {
+export type SocialNetworkItem = {
+  id: string;
   reachOrSubscribers: string;
   link: string;
   rknRegistered: boolean;
@@ -9,11 +10,10 @@ export type SocialNetworkRowValues = {
   rknNumber: string;
 };
 
-export type SocialNetworksValues = {
-  photo: boolean;
-  video: boolean;
-  platforms: Record<string, SocialNetworkRowValues>;
-};
+/** @deprecated Используйте SocialNetworkItem */
+export type SocialNetworkRowValues = Omit<SocialNetworkItem, 'id'>;
+
+export type SocialNetworksValues = SocialNetworkItem[];
 
 export const parseSubscriberCount = (value: string): number => {
   const normalized = value.replace(/\s/g, '');
@@ -40,11 +40,11 @@ export const isSocialPlatformActive = (row: SocialNetworkRowValues): boolean => 
 export const hasPendingRknCompliance = (row: SocialNetworkRowValues): boolean =>
   requiresRknCompliance(row.reachOrSubscribers) && !isSocialPlatformActive(row);
 
-export const hasNonCompliantRknPlatforms = (
-  platforms: Record<string, SocialNetworkRowValues>,
-): boolean => Object.values(platforms).some(hasPendingRknCompliance);
+export const hasNonCompliantRknPlatforms = (items: SocialNetworksValues): boolean =>
+  items.some(hasPendingRknCompliance);
 
-const createSocialNetworkRow = (): SocialNetworkRowValues => ({
+const createSocialNetworkItem = (id: string): SocialNetworkItem => ({
+  id,
   reachOrSubscribers: '',
   link: '',
   rknRegistered: false,
@@ -53,26 +53,25 @@ const createSocialNetworkRow = (): SocialNetworkRowValues => ({
   rknNumber: '',
 });
 
-export const createEmptySocialNetworks = (): SocialNetworksValues => ({
-  photo: false,
-  video: false,
-  platforms: {},
-});
+export const createEmptySocialNetworks = (): SocialNetworksValues => [];
+
+export const getSocialNetworkById = (
+  items: SocialNetworksValues,
+  id: string,
+): SocialNetworkItem | undefined => items.find((item) => item.id === id);
+
+export const updateSocialNetworkItem = (
+  items: SocialNetworksValues,
+  id: string,
+  patch: Partial<SocialNetworkRowValues>,
+): SocialNetworksValues =>
+  items.map((item) => (item.id === id ? { ...item, ...patch } : item));
 
 export const syncSocialNetworksWithBasicServices = (
   socialIds: string[],
   socialNetworks: SocialNetworksValues,
 ): SocialNetworksValues => {
-  const platforms = socialIds.reduce(
-    (acc, id) => {
-      acc[id] = socialNetworks.platforms[id] ?? createSocialNetworkRow();
-      return acc;
-    },
-    {} as Record<string, SocialNetworkRowValues>,
-  );
+  const byId = Object.fromEntries(socialNetworks.map((item) => [item.id, item]));
 
-  return {
-    ...socialNetworks,
-    platforms,
-  };
+  return socialIds.map((id) => byId[id] ?? createSocialNetworkItem(id));
 };

@@ -2,12 +2,14 @@ import { Anchor, Badge, Stack, Text } from '@mantine/core';
 import { DataTable } from '@/shared/ui/data-table';
 import {
   getSocialPlatformId,
-  type BasicServiceItemConfig,
+  type BasicServiceItem,
   type BasicServicesState,
 } from '../model/basic-services';
 import {
+  getSocialNetworkById,
   isSocialPlatformActive,
   requiresRknCompliance,
+  type SocialNetworkRowValues,
   type SocialNetworksValues,
 } from '../model/social-networks';
 import { getSocialPlatformById } from '@/shared/model/social-platforms';
@@ -15,10 +17,10 @@ import { getSocialPlatformById } from '@/shared/model/social-platforms';
 type MediaSocialNetworksViewProps = {
   basicServices: BasicServicesState;
   socialNetworks: SocialNetworksValues;
-  socialItems: BasicServiceItemConfig[];
+  socialItems: BasicServiceItem[];
 };
 
-const formatRknStatus = (row: SocialNetworksValues['platforms'][string]): string => {
+const formatRknStatus = (row: SocialNetworkRowValues): string => {
   if (!requiresRknCompliance(row.reachOrSubscribers)) {
     return 'Не требуется';
   }
@@ -54,14 +56,14 @@ const MediaSocialNetworksView = ({
     {
       key: 'label',
       title: 'Услуга',
-      render: (config: BasicServiceItemConfig) => (
+      render: (config: BasicServiceItem) => (
         <Text size="sm">{config.label.trim() || '—'}</Text>
       ),
     },
     {
       key: 'platform',
       title: 'Соцсеть',
-      render: (config: BasicServiceItemConfig) => {
+      render: (config: BasicServiceItem) => {
         const platformId = getSocialPlatformId(config);
         return (
           <Text size="sm">
@@ -73,8 +75,8 @@ const MediaSocialNetworksView = ({
     {
       key: 'link',
       title: 'Ссылка',
-      render: (config: BasicServiceItemConfig) => {
-        const link = socialNetworks.platforms[config.id]?.link.trim();
+      render: (config: BasicServiceItem) => {
+        const link = getSocialNetworkById(socialNetworks, config.id)?.link.trim();
 
         if (!link) {
           return (
@@ -94,16 +96,16 @@ const MediaSocialNetworksView = ({
     {
       key: 'reachOrSubscribers',
       title: 'Посещаемость / подписчики',
-      render: (config: BasicServiceItemConfig) => {
-        const value = socialNetworks.platforms[config.id]?.reachOrSubscribers.trim();
+      render: (config: BasicServiceItem) => {
+        const value = getSocialNetworkById(socialNetworks, config.id)?.reachOrSubscribers.trim();
         return <Text size="sm">{value || '—'}</Text>;
       },
     },
     {
       key: 'rkn',
       title: 'РКН',
-      render: (config: BasicServiceItemConfig) => {
-        const row = socialNetworks.platforms[config.id];
+      render: (config: BasicServiceItem) => {
+        const row = getSocialNetworkById(socialNetworks, config.id);
 
         if (!row) {
           return (
@@ -119,8 +121,8 @@ const MediaSocialNetworksView = ({
     {
       key: 'status',
       title: 'Статус',
-      render: (config: BasicServiceItemConfig) => {
-        const row = socialNetworks.platforms[config.id];
+      render: (config: BasicServiceItem) => {
+        const row = getSocialNetworkById(socialNetworks, config.id);
 
         if (!row) {
           return null;
@@ -143,16 +145,6 @@ const MediaSocialNetworksView = ({
         columns={columns}
         getRowKey={(config) => config.id}
         sections={[{ key: 'platforms', rows: socialItems }]}
-        footer={
-          socialNetworks.photo || socialNetworks.video ? (
-            <Text size="sm">
-              Дополнительно:{' '}
-              {[socialNetworks.photo ? 'фото' : null, socialNetworks.video ? 'видео' : null]
-                .filter(Boolean)
-                .join(', ')}
-            </Text>
-          ) : undefined
-        }
       />
     </Stack>
   );

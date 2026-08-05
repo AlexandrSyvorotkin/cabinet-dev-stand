@@ -148,9 +148,9 @@ const ServicePackagePreview = ({
   const servicePrices = useMemo(
     () =>
       Object.fromEntries(
-        Object.entries(basicServices.values).map(([key, row]) => [key, parsePrice(row.price)]),
+        basicServices.items.map((item) => [item.id, parsePrice(item.price)]),
       ),
-    [basicServices.values],
+    [basicServices.items],
   );
 
   const serviceLabels = useMemo(

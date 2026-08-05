@@ -31,11 +31,14 @@ import {
   getPlacementTypeId,
   getSocialItems,
   getSocialPlatformId,
+  isHeadlineLimitDisabled,
+  isMaxCharsDisabled,
   removeBasicService,
+  updateBasicServiceItem,
   updateBasicServiceLabel,
   updatePlacementType,
   updateSocialPlatform,
-  type BasicServiceItemConfig,
+  type BasicServiceItem,
   type BasicServicesState,
 } from '../model/basic-services';
 
@@ -54,14 +57,8 @@ const BasicServicesTable = ({
   agencyDiscount,
   onAgencyDiscountChange,
 }: BasicServicesTableProps) => {
-  const updateRow = (id: string, patch: Partial<BasicServicesState['values'][string]>) => {
-    onChange({
-      ...values,
-      values: {
-        ...values.values,
-        [id]: { ...values.values[id], ...patch },
-      },
-    });
+  const updateRow = (id: string, patch: Partial<BasicServiceItem>) => {
+    onChange(updateBasicServiceItem(values, id, patch));
   };
 
   const updateLabel = (id: string, label: string) => {
@@ -83,10 +80,10 @@ const BasicServicesTable = ({
     {
       key: 'label',
       title: 'Услуга (название)',
-      render: (config: BasicServiceItemConfig) => (
+      render: (item: BasicServiceItem) => (
         <TextInput
-          value={config.label}
-          onChange={(event) => updateLabel(config.id, event.currentTarget.value)}
+          value={item.label}
+          onChange={(event) => updateLabel(item.id, event.currentTarget.value)}
           placeholder="Название"
         />
       ),
@@ -94,13 +91,13 @@ const BasicServicesTable = ({
     {
       key: 'placementType',
       title: 'Тип размещения',
-      render: (config: BasicServiceItemConfig) => {
-        if (config.group === 'social') {
+      render: (item: BasicServiceItem) => {
+        if (item.group === 'social') {
           return (
             <SocialPlatformSelect
-              value={getSocialPlatformId(config)}
+              value={getSocialPlatformId(item)}
               onChange={(platformId) =>
-                onChange(updateSocialPlatform(values, config.id, platformId))
+                onChange(updateSocialPlatform(values, item.id, platformId))
               }
             />
           );
@@ -108,9 +105,9 @@ const BasicServicesTable = ({
 
         return (
           <PlacementTypeSelect
-            value={getPlacementTypeId(config)}
+            value={getPlacementTypeId(item)}
             onChange={(placementTypeId) =>
-              onChange(updatePlacementType(values, config.id, placementTypeId))
+              onChange(updatePlacementType(values, item.id, placementTypeId))
             }
           />
         );
@@ -126,45 +123,34 @@ const BasicServicesTable = ({
           <InfoHintIcon label={PLACEMENT_CHARS_TOOLTIP} />
         </Group>
       ),
-      render: (config: BasicServiceItemConfig) => {
-        const row = values.values[config.id];
-
-        return (
-          <NumberInput
-            value={row?.maxChars ? Number(row.maxChars) : ''}
-            onChange={(value) => updateRow(config.id, { maxChars: String(value ?? '') })}
-            min={0}
-            placeholder="—"
-            disabled={config.defaultMaxChars === null}
-          />
-        );
-      },
+      render: (item: BasicServiceItem) => (
+        <NumberInput
+          value={item.maxChars ? Number(item.maxChars) : ''}
+          onChange={(value) => updateRow(item.id, { maxChars: String(value ?? '') })}
+          min={0}
+          placeholder="—"
+          disabled={isMaxCharsDisabled(item)}
+        />
+      ),
     },
     {
       key: 'headlineLimit',
       title: 'Заголовок',
-      render: (config: BasicServiceItemConfig) => {
-        const row = values.values[config.id];
-
-        return (
-          <NumberInput
-            value={row?.headlineLimit ? Number(row.headlineLimit) : ''}
-            onChange={(value) =>
-              updateRow(config.id, { headlineLimit: String(value ?? '') })
-            }
-            min={0}
-            placeholder="—"
-            disabled={config.defaultHeadline === null}
-          />
-        );
-      },
+      render: (item: BasicServiceItem) => (
+        <NumberInput
+          value={item.headlineLimit ? Number(item.headlineLimit) : ''}
+          onChange={(value) => updateRow(item.id, { headlineLimit: String(value ?? '') })}
+          min={0}
+          placeholder="—"
+          disabled={isHeadlineLimitDisabled(item)}
+        />
+      ),
     },
     {
       key: 'price',
       title: 'Цена, руб.',
-      render: (config: BasicServiceItemConfig) => {
-        const row = values.values[config.id];
-        const basePrice = parsePrice(row?.price);
+      render: (item: BasicServiceItem) => {
+        const basePrice = parsePrice(item.price);
         const agencyPrice =
           agencyDiscount?.enabled && basePrice > 0
             ? applyAgencyDiscountToPrice(basePrice, agencyDiscount)
@@ -173,8 +159,8 @@ const BasicServicesTable = ({
         return (
           <Stack gap={2}>
             <NumberInput
-              value={row?.price ? Number(row.price) : ''}
-              onChange={(value) => updateRow(config.id, { price: String(value ?? '') })}
+              value={item.price ? Number(item.price) : ''}
+              onChange={(value) => updateRow(item.id, { price: String(value ?? '') })}
               min={0}
               placeholder="—"
               thousandSeparator=" "
@@ -191,10 +177,8 @@ const BasicServicesTable = ({
     {
       key: 'discount',
       headerStyle: { background: PACKAGE_KIND_HEADER_BG.discount },
-      getCellStyle: (config: BasicServiceItemConfig) =>
-        values.values[config.id]?.discount
-          ? { background: PACKAGE_KIND_HEADER_BG.discount }
-          : undefined,
+      getCellStyle: (item: BasicServiceItem) =>
+        item.discount ? { background: PACKAGE_KIND_HEADER_BG.discount } : undefined,
       title: (
         <Group gap={6} wrap="nowrap" justify="center">
           <Text span size="sm" fw={600} c={PACKAGE_KIND_COLORS.discount}>
@@ -203,30 +187,22 @@ const BasicServicesTable = ({
           <InfoHintIcon label={BASIC_SERVICE_DISCOUNT_COLUMN_HINT} />
         </Group>
       ),
-      render: (config: BasicServiceItemConfig) => {
-        const row = values.values[config.id];
-
-        return (
-          <Group justify="center">
-            <Checkbox
-              aria-label={`${config.label} — скидка`}
-              checked={row?.discount ?? false}
-              color={PACKAGE_KIND_COLORS.discount}
-              onChange={(event) =>
-                updateRow(config.id, { discount: event.currentTarget.checked })
-              }
-            />
-          </Group>
-        );
-      },
+      render: (item: BasicServiceItem) => (
+        <Group justify="center">
+          <Checkbox
+            aria-label={`${item.label} — скидка`}
+            checked={item.discount}
+            color={PACKAGE_KIND_COLORS.discount}
+            onChange={(event) => updateRow(item.id, { discount: event.currentTarget.checked })}
+          />
+        </Group>
+      ),
     },
     {
       key: 'bonus',
       headerStyle: { background: PACKAGE_KIND_HEADER_BG.bonus },
-      getCellStyle: (config: BasicServiceItemConfig) =>
-        values.values[config.id]?.bonus
-          ? { background: PACKAGE_KIND_HEADER_BG.bonus }
-          : undefined,
+      getCellStyle: (item: BasicServiceItem) =>
+        item.bonus ? { background: PACKAGE_KIND_HEADER_BG.bonus } : undefined,
       title: (
         <Group gap={6} wrap="nowrap" justify="center">
           <Text span size="sm" fw={600} c={PACKAGE_KIND_COLORS.bonus}>
@@ -235,28 +211,22 @@ const BasicServicesTable = ({
           <InfoHintIcon label={BASIC_SERVICE_BONUS_COLUMN_HINT} />
         </Group>
       ),
-      render: (config: BasicServiceItemConfig) => {
-        const row = values.values[config.id];
-
-        return (
-          <Group justify="center">
-            <Checkbox
-              aria-label={`${config.label} — бонус`}
-              checked={row?.bonus ?? false}
-              color={PACKAGE_KIND_COLORS.bonus}
-              onChange={(event) =>
-                updateRow(config.id, { bonus: event.currentTarget.checked })
-              }
-            />
-          </Group>
-        );
-      },
+      render: (item: BasicServiceItem) => (
+        <Group justify="center">
+          <Checkbox
+            aria-label={`${item.label} — бонус`}
+            checked={item.bonus}
+            color={PACKAGE_KIND_COLORS.bonus}
+            onChange={(event) => updateRow(item.id, { bonus: event.currentTarget.checked })}
+          />
+        </Group>
+      ),
     },
     {
       key: 'actions',
       title: '',
-      render: (config: BasicServiceItemConfig) => {
-        const removable = canRemoveBasicService(values, config.id);
+      render: (item: BasicServiceItem) => {
+        const removable = canRemoveBasicService(values, item.id);
 
         return (
           <Group justify="center">
@@ -271,9 +241,9 @@ const BasicServicesTable = ({
                 variant="subtle"
                 color="red"
                 size="sm"
-                aria-label={`Удалить ${config.label}`}
+                aria-label={`Удалить ${item.label}`}
                 disabled={!removable}
-                onClick={() => handleRemove(config.id)}
+                onClick={() => handleRemove(item.id)}
               >
                 ×
               </ActionIcon>
@@ -287,7 +257,7 @@ const BasicServicesTable = ({
   return (
     <DataTable
       columns={columns}
-      getRowKey={(config) => config.id}
+      getRowKey={(item) => item.id}
       sections={[
         {
           key: 'placement',

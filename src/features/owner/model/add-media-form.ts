@@ -11,7 +11,7 @@ import {
   getSocialPlatformId,
   type BasicServiceItemConfig,
 } from './basic-services';
-import { createEmptyPricingRules, type PricingRules, type ServicePackage } from './pricing';
+import { createEmptyServicePackage, type PricingRules, type ServicePackage } from './pricing';
 import {
   createEmptySocialNetworks,
   syncSocialNetworksWithBasicServices,
@@ -19,6 +19,7 @@ import {
 } from './social-networks';
 
 export type {
+  BasicServiceItem,
   BasicServiceItemConfig,
   BasicServiceKey,
   BasicServiceRowValues,
@@ -40,20 +41,25 @@ export {
   getPlacementItems,
   getPlacementTypeId,
   getSocialItems,
+  isHeadlineLimitDisabled,
+  isMaxCharsDisabled,
   removeBasicService,
+  updateBasicServiceItem,
   updateBasicServiceLabel,
   updatePlacementType,
   updateSocialPlatform,
 } from './basic-services';
-export type { SocialNetworkRowValues, SocialNetworksValues } from './social-networks';
+export type { SocialNetworkItem, SocialNetworkRowValues, SocialNetworksValues } from './social-networks';
 export {
   createEmptySocialNetworks,
+  getSocialNetworkById,
   hasNonCompliantRknPlatforms,
   isSocialPlatformActive,
   parseSubscriberCount,
   requiresRknCompliance,
   RKN_SUBSCRIBER_THRESHOLD,
   syncSocialNetworksWithBasicServices,
+  updateSocialNetworkItem,
 } from './social-networks';
 export type {
   DiscountedServiceItem,
@@ -64,7 +70,7 @@ export type {
 } from './pricing';
 export {
   createDiscountedServiceItem,
-  createEmptyPricingRules,
+  createEmptyServicePackage,
   createPricingAddon,
   createServicePackage,
   getDiscountedServiceKeys,
@@ -93,15 +99,12 @@ export type AddMediaFormValues = {
   coverage: string;
   themes: string[];
   trafficReach: string;
-  pricingRules: PricingRules;
+  servicePackage: PricingRules;
   basicServices: BasicServicesState;
   socialNetworks: SocialNetworksValues;
 };
 
 export type MediaBasicServicePayload = BasicServiceItemConfig & {
-  maxChars: string;
-  headlineLimit: string;
-  price: string;
   availableForDiscount: boolean;
   availableForBonus: boolean;
 };
@@ -129,11 +132,9 @@ const buildDescription = (values: AddMediaFormValues): string => {
   if (values.region.trim()) lines.push(`Регион/страна: ${values.region.trim()}`);
   if (values.city.trim()) lines.push(`Город: ${values.city.trim()}`);
   if (values.themes.length > 0) lines.push(`Темы: ${values.themes.join(', ')}`);
-  if (values.socialNetworks.photo) lines.push('Фото: да');
-  if (values.socialNetworks.video) lines.push('Видео: да');
 
   for (const item of getSocialItems(values.basicServices)) {
-    const socialRow = values.socialNetworks.platforms[item.id];
+    const socialRow = values.socialNetworks.find((entry) => entry.id === item.id);
     if (!socialRow) continue;
 
     const platformLabel = item.label.trim() || getSocialPlatformId(item) || item.id;
@@ -162,10 +163,9 @@ const buildDescription = (values: AddMediaFormValues): string => {
 /** Скрин 2 — базовые услуги → CreateMediaOffersInput */
 const mapOffer = (
   item: BasicServiceItemConfig,
-  basicServices: BasicServicesState,
   agencyDiscount: PricingRules['agencyDiscount'],
 ) => {
-  const price = parsePrice(basicServices.values[item.id]?.price);
+  const price = parsePrice(item.price);
   const priceWithDiscount = applyAgencyDiscountToPrice(price, agencyDiscount);
 
   return {
@@ -179,7 +179,7 @@ const mapOffer = (
 
 /** Скрин 1 — ссылки (сайт + соцсети) → media_sections с вложенными offers */
 const mapMediaSections = (values: AddMediaFormValues) => {
-  const { basicServices, socialNetworks, pricingRules } = values;
+  const { basicServices, servicePackage } = values;
   const sections: NonNullable<CreateMediaPartnerInput['media_sections']> = [];
 
   if (values.url.trim()) {
@@ -188,7 +188,7 @@ const mapMediaSections = (values: AddMediaFormValues) => {
       title: values.name.trim() || 'Сайт',
       url: values.url.trim(),
       offers: getPlacementItems(basicServices).map((item) =>
-        mapOffer(item, basicServices, pricingRules.agencyDiscount),
+        mapOffer(item, servicePackage.agencyDiscount),
       ),
     });
   }
@@ -196,7 +196,7 @@ const mapMediaSections = (values: AddMediaFormValues) => {
   for (const item of getSocialItems(basicServices)) {
     const platformId = getSocialPlatformId(item);
     const sectionId = platformId ? SOCIAL_PLATFORM_SECTION_ID[platformId] : undefined;
-    const url = socialNetworks.platforms[item.id]?.link.trim() ?? '';
+    const url = values.socialNetworks.find((entry) => entry.id === item.id)?.link.trim() ?? '';
 
     if (!sectionId || !url) continue;
 
@@ -204,7 +204,7 @@ const mapMediaSections = (values: AddMediaFormValues) => {
       media_section_id: sectionId,
       title: item.label.trim() || platformId || 'Соцсеть',
       url,
-      offers: [mapOffer(item, basicServices, pricingRules.agencyDiscount)],
+      offers: [mapOffer(item, servicePackage.agencyDiscount)],
     });
   }
 
@@ -250,7 +250,7 @@ export const toCreateMediaPartnerInput = (
     name: values.name.trim(),
     description: userDescription || metadataDescription,
     media_sections: mapMediaSections(values),
-    media_promotions: mapMediaPromotions(values.pricingRules.servicePackages),
+    media_promotions: mapMediaPromotions(values.servicePackage.servicePackages),
   };
 };
 
@@ -259,24 +259,11 @@ export const serializeCreateMediaPayload = (values: AddMediaFormValues): CreateM
 
   return {
     ...rest,
-    basicServices: basicServices.items.map((item) => {
-      const row = basicServices.values[item.id] ?? {
-        maxChars: '',
-        headlineLimit: '',
-        price: '',
-        bonus: false,
-        discount: false,
-      };
-
-      return {
-        ...item,
-        maxChars: row.maxChars,
-        headlineLimit: row.headlineLimit,
-        price: row.price,
-        availableForDiscount: row.discount,
-        availableForBonus: row.bonus,
-      };
-    }),
+    basicServices: basicServices.items.map((item) => ({
+      ...item,
+      availableForDiscount: item.discount,
+      availableForBonus: item.bonus,
+    })),
   };
 };
 
@@ -309,7 +296,7 @@ export const EMPTY_ADD_MEDIA_FORM: AddMediaFormValues = (() => {
     coverage: FEDERAL_MEDIA_COVERAGE,
     themes: [],
     trafficReach: '',
-    pricingRules: createEmptyPricingRules(),
+    servicePackage: createEmptyServicePackage(),
     basicServices,
     socialNetworks: syncSocialNetworksWithBasicServices(socialIds, createEmptySocialNetworks()),
   };

@@ -31,12 +31,12 @@ const applyBasicServicesUpdate = (
   current: AddMediaFormValues,
 ): AddMediaFormValues => {
   const socialIds = getSocialItems(basicServices).map((item) => item.id);
-  const sanitizedPricingRules = sanitizePricingSelections(basicServices, current.pricingRules);
+  const sanitizedServicePackage = sanitizePricingSelections(basicServices, current.servicePackage);
 
   return {
     ...current,
     basicServices,
-    pricingRules: sanitizedPricingRules,
+    servicePackage: sanitizedServicePackage,
     socialNetworks: syncSocialNetworksWithBasicServices(socialIds, current.socialNetworks),
   };
 };
@@ -79,15 +79,15 @@ const useAddMediaForm = (initialValues: AddMediaFormValues = EMPTY_ADD_MEDIA_FOR
     form.setValues(applyBasicServicesUpdate(basicServices, form.getValues()));
   };
 
-  const setPricingRules = (pricingRules: AddMediaFormValues['pricingRules']) => {
-    form.setFieldValue('pricingRules', pricingRules);
+  const setServicePackage = (servicePackage: AddMediaFormValues['servicePackage']) => {
+    form.setFieldValue('servicePackage', servicePackage);
   };
 
   return {
     form,
     setCoverage,
     setBasicServices,
-    setPricingRules,
+    setServicePackage,
   };
 };
 

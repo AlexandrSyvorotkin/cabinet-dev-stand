@@ -13,7 +13,14 @@ import {
 export type { PlacementTypeId } from '@/shared/model/placement-types';
 export { PLACEMENT_TYPE_OPTIONS } from '@/shared/model/placement-types';
 
-export type BasicServiceRowValues = {
+export type BasicServiceItem = {
+  id: string;
+  label: string;
+  group: 'placement' | 'social';
+  isCustom: boolean;
+  placementTypeId?: PlacementTypeId;
+  platformId?: SocialPlatformId;
+  hint?: string;
   maxChars: string;
   headlineLimit: string;
   price: string;
@@ -21,22 +28,17 @@ export type BasicServiceRowValues = {
   discount: boolean;
 };
 
-export type BasicServiceItemConfig = {
-  id: string;
-  label: string;
-  group: 'placement' | 'social';
-  isCustom: boolean;
-  placementTypeId?: PlacementTypeId;
-  platformId?: SocialPlatformId;
-  defaultMaxChars?: number | null;
-  defaultHeadline?: number | null;
-  defaultPrice?: number | null;
-  hint?: string;
-};
+/** @deprecated Используйте BasicServiceItem */
+export type BasicServiceItemConfig = BasicServiceItem;
+
+/** @deprecated Используйте Partial<Pick<BasicServiceItem, ...>> */
+export type BasicServiceRowValues = Pick<
+  BasicServiceItem,
+  'maxChars' | 'headlineLimit' | 'price' | 'bonus' | 'discount'
+>;
 
 export type BasicServicesState = {
-  items: BasicServiceItemConfig[];
-  values: Record<string, BasicServiceRowValues>;
+  items: BasicServiceItem[];
 };
 
 /** @deprecated Используйте string id из BasicServicesState */
@@ -44,42 +46,74 @@ export type BasicServiceKey = string;
 
 const createId = (): string => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-const PLACEMENT_TYPE_CONFIGS: BasicServiceItemConfig[] = PLACEMENT_TYPES.map((type) => ({
+const createRowValues = (defaults: {
+  maxChars?: number | null;
+  headlineLimit?: number | null;
+  price?: number | null;
+}): Pick<BasicServiceItem, 'maxChars' | 'headlineLimit' | 'price' | 'bonus' | 'discount'> => ({
+  maxChars: defaults.maxChars != null ? String(defaults.maxChars) : '',
+  headlineLimit: defaults.headlineLimit != null ? String(defaults.headlineLimit) : '',
+  price: defaults.price != null ? String(defaults.price) : '',
+  bonus: false,
+  discount: false,
+});
+
+const createPlacementItem = (type: ReturnType<typeof getPlacementTypeConfig>): BasicServiceItem => ({
   id: type.id,
   label: type.label,
-  group: 'placement' as const,
+  group: 'placement',
   isCustom: false,
   placementTypeId: type.id,
-  defaultMaxChars: type.defaultMaxChars,
-  defaultHeadline: type.defaultHeadline,
-  defaultPrice: type.defaultPrice,
   hint: type.hint,
-}));
+  ...createRowValues({
+    maxChars: type.defaultMaxChars,
+    headlineLimit: type.defaultHeadline,
+    price: type.defaultPrice,
+  }),
+});
 
-export const getPlacementTypeId = (
-  config: BasicServiceItemConfig,
-): PlacementTypeId | null => {
-  if (config.placementTypeId) {
-    return config.placementTypeId;
+export const getPlacementTypeId = (item: BasicServiceItem): PlacementTypeId | null => {
+  if (item.placementTypeId) {
+    return item.placementTypeId;
   }
 
-  if (config.group === 'placement' && !config.isCustom && isPlacementTypeId(config.id)) {
-    return config.id;
+  if (item.group === 'placement' && !item.isCustom && isPlacementTypeId(item.id)) {
+    return item.id;
   }
 
   return null;
 };
 
-export const BUILTIN_BASIC_SERVICES_CONFIG: BasicServiceItemConfig[] = [
-  PLACEMENT_TYPE_CONFIGS[0]!,
+export const isMaxCharsDisabled = (item: BasicServiceItem): boolean => {
+  if (item.group !== 'placement') {
+    return false;
+  }
+
+  const placementTypeId = getPlacementTypeId(item);
+  return placementTypeId ? getPlacementTypeConfig(placementTypeId).defaultMaxChars === null : false;
+};
+
+export const isHeadlineLimitDisabled = (item: BasicServiceItem): boolean => {
+  if (item.group !== 'placement') {
+    return false;
+  }
+
+  const placementTypeId = getPlacementTypeId(item);
+  return placementTypeId ? getPlacementTypeConfig(placementTypeId).defaultHeadline === null : false;
+};
+
+export const BUILTIN_BASIC_SERVICES_CONFIG: BasicServiceItem[] = [
+  createPlacementItem(getPlacementTypeConfig(PLACEMENT_TYPES[0]!.id)),
   {
     id: 'telegram',
     label: 'ТГ',
     group: 'social',
     isCustom: false,
-    defaultMaxChars: 5000,
-    defaultHeadline: 50,
-    defaultPrice: 5_000,
+    ...createRowValues({
+      maxChars: 5000,
+      headlineLimit: 50,
+      price: 5_000,
+    }),
   },
 ];
 
@@ -88,30 +122,11 @@ export const BASIC_SERVICE_OPTIONS = BUILTIN_BASIC_SERVICES_CONFIG.map((item) =>
   label: item.label,
 }));
 
-const createBasicServiceRow = (config: BasicServiceItemConfig): BasicServiceRowValues => ({
-  maxChars: config.defaultMaxChars != null ? String(config.defaultMaxChars) : '',
-  headlineLimit: config.defaultHeadline != null ? String(config.defaultHeadline) : '',
-  price: config.defaultPrice != null ? String(config.defaultPrice) : '',
-  bonus: false,
-  discount: false,
+export const createEmptyBasicServices = (): BasicServicesState => ({
+  items: BUILTIN_BASIC_SERVICES_CONFIG.map((item) => ({ ...item })),
 });
 
-export const createEmptyBasicServices = (): BasicServicesState => {
-  const items = [...BUILTIN_BASIC_SERVICES_CONFIG];
-
-  return {
-    items,
-    values: items.reduce(
-      (acc, config) => {
-        acc[config.id] = createBasicServiceRow(config);
-        return acc;
-      },
-      {} as Record<string, BasicServiceRowValues>,
-    ),
-  };
-};
-
-export const createCustomPlacementService = (_order: number): BasicServiceItemConfig => {
+export const createCustomPlacementService = (_order: number): BasicServiceItem => {
   const typeConfig = getPlacementTypeConfig('news');
 
   return {
@@ -120,21 +135,33 @@ export const createCustomPlacementService = (_order: number): BasicServiceItemCo
     group: 'placement',
     isCustom: true,
     placementTypeId: 'news',
-    defaultMaxChars: typeConfig.defaultMaxChars,
-    defaultHeadline: typeConfig.defaultHeadline,
-    defaultPrice: typeConfig.defaultPrice,
     hint: typeConfig.hint,
+    ...createRowValues({
+      maxChars: typeConfig.defaultMaxChars,
+      headlineLimit: typeConfig.defaultHeadline,
+      price: typeConfig.defaultPrice,
+    }),
   };
 };
 
-export const createCustomSocialService = (): BasicServiceItemConfig => ({
+export const createCustomSocialService = (): BasicServiceItem => ({
   id: `social-${createId()}`,
   label: '',
   group: 'social',
   isCustom: true,
-  defaultMaxChars: 5000,
-  defaultHeadline: 50,
-  defaultPrice: null,
+  ...createRowValues({
+    maxChars: 5000,
+    headlineLimit: 50,
+    price: null,
+  }),
+});
+
+export const updateBasicServiceItem = (
+  state: BasicServicesState,
+  id: string,
+  patch: Partial<BasicServiceItem>,
+): BasicServicesState => ({
+  items: state.items.map((item) => (item.id === id ? { ...item, ...patch } : item)),
 });
 
 export const addCustomPlacementService = (state: BasicServicesState): BasicServicesState => {
@@ -143,10 +170,6 @@ export const addCustomPlacementService = (state: BasicServicesState): BasicServi
 
   return {
     items: [...state.items, newItem],
-    values: {
-      ...state.values,
-      [newItem.id]: createBasicServiceRow(newItem),
-    },
   };
 };
 
@@ -155,10 +178,6 @@ export const addCustomSocialService = (state: BasicServicesState): BasicServices
 
   return {
     items: [...state.items, newItem],
-    values: {
-      ...state.values,
-      [newItem.id]: createBasicServiceRow(newItem),
-    },
   };
 };
 
@@ -178,11 +197,8 @@ export const removeBasicService = (
     return null;
   }
 
-  const { [id]: _removed, ...restValues } = state.values;
-
   return {
     items: state.items.filter((entry) => entry.id !== id),
-    values: restValues,
   };
 };
 
@@ -200,10 +216,7 @@ export const updateBasicServiceLabel = (
   state: BasicServicesState,
   id: string,
   label: string,
-): BasicServicesState => ({
-  ...state,
-  items: state.items.map((item) => (item.id === id ? { ...item, label } : item)),
-});
+): BasicServicesState => updateBasicServiceItem(state, id, { label });
 
 export const updatePlacementType = (
   state: BasicServicesState,
@@ -211,47 +224,23 @@ export const updatePlacementType = (
   placementTypeId: PlacementTypeId,
 ): BasicServicesState => {
   const typeConfig = getPlacementTypeConfig(placementTypeId);
-  const currentRow = state.values[id];
 
-  return {
-    ...state,
-    items: state.items.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            placementTypeId,
-            defaultMaxChars: typeConfig.defaultMaxChars,
-            defaultHeadline: typeConfig.defaultHeadline,
-            defaultPrice: typeConfig.defaultPrice,
-            hint: typeConfig.hint,
-          }
-        : item,
-    ),
-    values: currentRow
-      ? {
-          ...state.values,
-          [id]: {
-            ...currentRow,
-            maxChars:
-              typeConfig.defaultMaxChars != null ? String(typeConfig.defaultMaxChars) : '',
-            headlineLimit:
-              typeConfig.defaultHeadline != null ? String(typeConfig.defaultHeadline) : '',
-            price: typeConfig.defaultPrice != null ? String(typeConfig.defaultPrice) : '',
-          },
-        }
-      : state.values,
-  };
+  return updateBasicServiceItem(state, id, {
+    placementTypeId,
+    hint: typeConfig.hint,
+    maxChars: typeConfig.defaultMaxChars != null ? String(typeConfig.defaultMaxChars) : '',
+    headlineLimit: typeConfig.defaultHeadline != null ? String(typeConfig.defaultHeadline) : '',
+    price: typeConfig.defaultPrice != null ? String(typeConfig.defaultPrice) : '',
+  });
 };
 
-export const getSocialPlatformId = (
-  config: BasicServiceItemConfig,
-): SocialPlatformId | null => {
-  if (config.platformId) {
-    return config.platformId;
+export const getSocialPlatformId = (item: BasicServiceItem): SocialPlatformId | null => {
+  if (item.platformId) {
+    return item.platformId;
   }
 
-  if (config.group === 'social' && isSocialPlatformId(config.id)) {
-    return config.id;
+  if (item.group === 'social' && isSocialPlatformId(item.id)) {
+    return item.id;
   }
 
   return null;
@@ -270,23 +259,18 @@ export const updateSocialPlatform = (
   state: BasicServicesState,
   id: string,
   platformId: SocialPlatformId,
-): BasicServicesState => ({
-  ...state,
-  items: state.items.map((item) => (item.id === id ? { ...item, platformId } : item)),
-});
+): BasicServicesState => updateBasicServiceItem(state, id, { platformId });
 
 export const canAddSocialPlatform = (state: BasicServicesState): boolean =>
   getSocialItems(state).length < SOCIAL_PLATFORMS.length;
 
-export const getPlacementItems = (state: BasicServicesState): BasicServiceItemConfig[] =>
+export const getPlacementItems = (state: BasicServicesState): BasicServiceItem[] =>
   state.items.filter((item) => item.group === 'placement');
 
-export const getSocialItems = (state: BasicServicesState): BasicServiceItemConfig[] =>
+export const getSocialItems = (state: BasicServicesState): BasicServiceItem[] =>
   state.items.filter((item) => item.group === 'social');
 
-export const getBasicServiceLabelsMap = (
-  items: BasicServiceItemConfig[],
-): Record<string, string> =>
+export const getBasicServiceLabelsMap = (items: BasicServiceItem[]): Record<string, string> =>
   Object.fromEntries(items.map((item) => [item.id, item.label]));
 
 export type BasicServiceSelectFlag = 'bonus' | 'discount';
@@ -296,7 +280,7 @@ export const getBasicServiceSelectOptions = (
   flag: BasicServiceSelectFlag,
 ) => {
   return basicServices.items
-    .filter((item) => basicServices.values[item.id]?.[flag])
+    .filter((item) => item[flag])
     .map((item) => ({
       value: item.id,
       label: item.label,
@@ -307,7 +291,5 @@ export const getEligibleBasicServiceKeys = (
   basicServices: BasicServicesState,
   flag: BasicServiceSelectFlag,
 ): string[] => {
-  return basicServices.items
-    .filter((item) => basicServices.values[item.id]?.[flag])
-    .map((item) => item.id);
+  return basicServices.items.filter((item) => item[flag]).map((item) => item.id);
 };

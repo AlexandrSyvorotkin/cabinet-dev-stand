@@ -4,12 +4,12 @@ import {
   type AddMediaFormValues,
 } from '../model/add-media-form';
 import type {
-  BasicServiceItemConfig,
+  BasicServiceItem,
   BasicServiceRowValues,
   BasicServicesState,
 } from '../model/basic-services';
 import { createMediaItem, type OwnerMediaItem } from '../model/media';
-import type { SocialNetworkRowValues, SocialNetworksValues } from '../model/social-networks';
+import type { SocialNetworkRowValues } from '../model/social-networks';
 import { getPlacementTypeConfig, type PlacementTypeId } from '@/shared/model/placement-types';
 import {
   getSocialPlatformById,
@@ -46,10 +46,14 @@ const MOCK_SERVICE_IDS = {
 
 const cloneForm = (): AddMediaFormValues => structuredClone(EMPTY_ADD_MEDIA_FORM);
 
-const createBasicServiceRow = (config: BasicServiceItemConfig): BasicServiceRowValues => ({
-  maxChars: config.defaultMaxChars != null ? String(config.defaultMaxChars) : '',
-  headlineLimit: config.defaultHeadline != null ? String(config.defaultHeadline) : '',
-  price: config.defaultPrice != null ? String(config.defaultPrice) : '',
+const createRowValues = (defaults: {
+  maxChars?: number | null;
+  headlineLimit?: number | null;
+  price?: number | null;
+}): BasicServiceRowValues => ({
+  maxChars: defaults.maxChars != null ? String(defaults.maxChars) : '',
+  headlineLimit: defaults.headlineLimit != null ? String(defaults.headlineLimit) : '',
+  price: defaults.price != null ? String(defaults.price) : '',
   bonus: false,
   discount: false,
 });
@@ -72,7 +76,8 @@ const createMockPlacementItem = ({
   id,
   placementTypeId,
   isBuiltin = false,
-}: MockPlacementSpec): BasicServiceItemConfig => {
+  patch,
+}: MockPlacementSpec): BasicServiceItem => {
   const type = getPlacementTypeConfig(placementTypeId);
 
   return {
@@ -81,10 +86,13 @@ const createMockPlacementItem = ({
     group: 'placement',
     isCustom: !isBuiltin,
     placementTypeId: type.id,
-    defaultMaxChars: type.defaultMaxChars,
-    defaultHeadline: type.defaultHeadline,
-    defaultPrice: type.defaultPrice,
     hint: type.hint,
+    ...createRowValues({
+      maxChars: type.defaultMaxChars,
+      headlineLimit: type.defaultHeadline,
+      price: type.defaultPrice,
+    }),
+    ...patch,
   };
 };
 
@@ -92,7 +100,8 @@ const createMockSocialItem = ({
   id,
   platformId,
   isBuiltin = false,
-}: MockSocialSpec): BasicServiceItemConfig => {
+  patch,
+}: MockSocialSpec): BasicServiceItem => {
   const platform = getSocialPlatformById(platformId);
 
   return {
@@ -101,41 +110,26 @@ const createMockSocialItem = ({
     group: 'social',
     isCustom: !isBuiltin,
     platformId,
-    defaultMaxChars: 5000,
-    defaultHeadline: 50,
-    defaultPrice: 5_000,
+    ...createRowValues({
+      maxChars: 5000,
+      headlineLimit: 50,
+      price: 5_000,
+    }),
+    ...patch,
   };
 };
 
 const buildMockBasicServices = (
   placements: MockPlacementSpec[],
   socials: MockSocialSpec[],
-): BasicServicesState => {
-  const placementItems = placements.map(createMockPlacementItem);
-  const socialItems = socials.map(createMockSocialItem);
-  const items = [...placementItems, ...socialItems];
-  const patches = Object.fromEntries([
-    ...placements.map((entry) => [entry.id, entry.patch ?? {}]),
-    ...socials.map((entry) => [entry.id, entry.patch ?? {}]),
-  ]) as Record<string, Partial<BasicServiceRowValues>>;
-
-  return {
-    items,
-    values: Object.fromEntries(
-      items.map((item) => [
-        item.id,
-        { ...createBasicServiceRow(item), ...(patches[item.id] ?? {}) },
-      ]),
-    ),
-  };
-};
+): BasicServicesState => ({
+  items: [...placements.map(createMockPlacementItem), ...socials.map(createMockSocialItem)],
+});
 
 type ApplyMediaServicesOptions = {
   placements: MockPlacementSpec[];
   socials: MockSocialSpec[];
-  socialNetworks?: Omit<Partial<SocialNetworksValues>, 'platforms'> & {
-    platforms?: Record<string, Partial<SocialNetworkRowValues>>;
-  };
+  socialNetworks?: Array<{ id: string } & Partial<SocialNetworkRowValues>>;
 };
 
 const applyMediaServices = (
@@ -147,20 +141,14 @@ const applyMediaServices = (
   let socialNetworks = syncSocialNetworksWithBasicServices(socialItemIds, form.socialNetworks);
 
   if (socialNetworksPatch) {
-    socialNetworks = {
-      ...socialNetworks,
-      photo: socialNetworksPatch.photo ?? socialNetworks.photo,
-      video: socialNetworksPatch.video ?? socialNetworks.video,
-      platforms: Object.fromEntries(
-        socialItemIds.map((id) => [
-          id,
-          {
-            ...socialNetworks.platforms[id],
-            ...(socialNetworksPatch.platforms?.[id] ?? {}),
-          },
-        ]),
-      ),
-    };
+    const patchById = Object.fromEntries(
+      socialNetworksPatch.map((entry) => [entry.id, entry]),
+    );
+
+    socialNetworks = socialNetworks.map((item) => ({
+      ...item,
+      ...(patchById[item.id] ?? {}),
+    }));
   }
 
   return {
@@ -191,7 +179,7 @@ const createAltaiInfoForm = (): AddMediaFormValues => {
       city: 'Горно-Алтайск',
       coverage: 'Региональное',
       trafficReach: '45 000 в месяц',
-      pricingRules: {
+      servicePackage: {
         agencyDiscount: { enabled: true, percent: 15 },
         addons: [
           {
@@ -275,16 +263,12 @@ const createAltaiInfoForm = (): AddMediaFormValues => {
           patch: { discount: true, bonus: false },
         },
       ],
-      socialNetworks: {
-        photo: true,
-        video: false,
-        platforms: {
-          telegram: { reachOrSubscribers: '18 500', link: 'https://t.me/altai_info' },
-          [ids.vk]: { reachOrSubscribers: '12 000', link: 'https://vk.com/altai_info' },
-          [ids.ok]: { reachOrSubscribers: '6 400', link: 'https://ok.ru/altai_info' },
-          [ids.max]: { reachOrSubscribers: '3 200', link: 'https://max.ru/altai_info' },
-        },
-      },
+      socialNetworks: [
+        { id: 'telegram', reachOrSubscribers: '18 500', link: 'https://t.me/altai_info' },
+        { id: ids.vk, reachOrSubscribers: '12 000', link: 'https://vk.com/altai_info' },
+        { id: ids.ok, reachOrSubscribers: '6 400', link: 'https://ok.ru/altai_info' },
+        { id: ids.max, reachOrSubscribers: '3 200', link: 'https://max.ru/altai_info' },
+      ],
     },
   );
 };
@@ -301,7 +285,7 @@ const createPermGazetaForm = (): AddMediaFormValues => {
       city: 'Пермь',
       coverage: 'Региональное',
       trafficReach: '120 000 в месяц',
-      pricingRules: {
+      servicePackage: {
         agencyDiscount: { enabled: false, percent: 10 },
         addons: [
           {
@@ -358,17 +342,16 @@ const createPermGazetaForm = (): AddMediaFormValues => {
           patch: { price: '4200', discount: true, bonus: false },
         },
       ],
-      socialNetworks: {
-        photo: false,
-        video: true,
-        platforms: {
-          telegram: { reachOrSubscribers: '25 000', link: 'https://t.me/perm_gazeta' },
-          [ids.vk]: withRkn(
+      socialNetworks: [
+        { id: 'telegram', reachOrSubscribers: '25 000', link: 'https://t.me/perm_gazeta' },
+        {
+          id: ids.vk,
+          ...withRkn(
             { reachOrSubscribers: '31 000', link: 'https://vk.com/perm_gazeta' },
             '77-012345',
           ),
         },
-      },
+      ],
     },
   );
 };
@@ -384,7 +367,7 @@ const createMoscow24Form = (): AddMediaFormValues => {
       region: 'Москва',
       coverage: 'Федеральное',
       trafficReach: '2 500 000 в месяц',
-      pricingRules: {
+      servicePackage: {
         agencyDiscount: { enabled: true, percent: 20 },
         addons: [
           {
@@ -468,28 +451,36 @@ const createMoscow24Form = (): AddMediaFormValues => {
           patch: { price: '9000', discount: true, bonus: false },
         },
       ],
-      socialNetworks: {
-        photo: true,
-        video: true,
-        platforms: {
-          telegram: withRkn(
+      socialNetworks: [
+        {
+          id: 'telegram',
+          ...withRkn(
             { reachOrSubscribers: '890 000', link: 'https://t.me/moscow24' },
             '77-100001',
           ),
-          [ids.vk]: withRkn(
+        },
+        {
+          id: ids.vk,
+          ...withRkn(
             { reachOrSubscribers: '1 200 000', link: 'https://vk.com/moscow24' },
             '77-100002',
           ),
-          [ids.ok]: withRkn(
+        },
+        {
+          id: ids.ok,
+          ...withRkn(
             { reachOrSubscribers: '340 000', link: 'https://ok.ru/moscow24' },
             '77-100003',
           ),
-          [ids.max]: withRkn(
+        },
+        {
+          id: ids.max,
+          ...withRkn(
             { reachOrSubscribers: '150 000', link: 'https://max.ru/moscow24' },
             '77-100004',
           ),
         },
-      },
+      ],
     },
   );
 };
@@ -506,7 +497,7 @@ const createFederalPortalForm = (): AddMediaFormValues => {
       city: 'Астана',
       coverage: 'Международное',
       trafficReach: '800 000 в месяц',
-      pricingRules: {
+      servicePackage: {
         agencyDiscount: { enabled: true, percent: 12 },
         addons: [
           {
@@ -551,20 +542,22 @@ const createFederalPortalForm = (): AddMediaFormValues => {
           patch: { price: '7000', discount: true, bonus: true },
         },
       ],
-      socialNetworks: {
-        photo: true,
-        video: true,
-        platforms: {
-          telegram: withRkn(
+      socialNetworks: [
+        {
+          id: 'telegram',
+          ...withRkn(
             { reachOrSubscribers: '210 000', link: 'https://t.me/federal_analytics' },
             'KZ-200001',
           ),
-          [ids.vk]: withRkn(
+        },
+        {
+          id: ids.vk,
+          ...withRkn(
             { reachOrSubscribers: '180 000', link: 'https://vk.com/federal_analytics' },
             'KZ-200002',
           ),
         },
-      },
+      ],
     },
   );
 };

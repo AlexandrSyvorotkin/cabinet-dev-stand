@@ -34,20 +34,20 @@ type MediaFormProps = {
   form: AddMediaForm;
   onCoverageChange: (coverage: string | null) => void;
   onBasicServicesChange: (basicServices: AddMediaFormValues['basicServices']) => void;
-  onPricingRulesChange: (pricingRules: AddMediaFormValues['pricingRules']) => void;
+  onServicePackageChange: (servicePackage: AddMediaFormValues['servicePackage']) => void;
 };
 
 const MediaForm = ({
   form,
   onCoverageChange,
   onBasicServicesChange,
-  onPricingRulesChange,
+  onServicePackageChange,
 }: MediaFormProps) => {
   const { values } = form;
   const showRegionalFields = isRegionalMedia(values.coverage);
   const showInternationalFields = isInternationalMedia(values.coverage);
   const showLocationFields = showRegionalFields || showInternationalFields;
-  const showRknAlert = hasNonCompliantRknPlatforms(values.socialNetworks.platforms);
+  const showRknAlert = hasNonCompliantRknPlatforms(values.socialNetworks);
 
   return (
     <>
@@ -159,10 +159,10 @@ const MediaForm = ({
             <BasicServicesTable
               values={values.basicServices}
               onChange={onBasicServicesChange}
-              agencyDiscount={values.pricingRules.agencyDiscount}
+              agencyDiscount={values.servicePackage.agencyDiscount}
               onAgencyDiscountChange={(agencyDiscount) =>
-                onPricingRulesChange({
-                  ...values.pricingRules,
+                onServicePackageChange({
+                  ...values.servicePackage,
                   agencyDiscount,
                 })
               }
@@ -197,8 +197,8 @@ const MediaForm = ({
 
           <ServicePackagesSection
             basicServices={values.basicServices}
-            rules={values.pricingRules}
-            onRulesChange={onPricingRulesChange}
+            rules={values.servicePackage}
+            onRulesChange={onServicePackageChange}
           />
         </Stack>
       </Paper>
@@ -207,8 +207,8 @@ const MediaForm = ({
         <Stack gap="md">
           <Title order={4}>Дополнительные условия</Title>
           <PricingModifiersSection
-            rules={values.pricingRules}
-            onRulesChange={onPricingRulesChange}
+            rules={values.servicePackage}
+            onRulesChange={onServicePackageChange}
           />
         </Stack>
       </Paper>

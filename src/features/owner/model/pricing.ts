@@ -94,7 +94,7 @@ export const normalizeServicePackage = (servicePackage: ServicePackage): Service
 export const getDiscountedServiceKeys = (servicePackage: ServicePackage): string[] =>
   servicePackage.discountedServices.flatMap((item) => item.serviceKeys);
 
-export const createEmptyPricingRules = (): PricingRules => ({
+export const createEmptyServicePackage = (): PricingRules => ({
   agencyDiscount: { enabled: false, percent: 10 },
   addons: [
     {
@@ -128,34 +128,34 @@ export const getServicePackageLabel = (servicePackage: ServicePackage, index: nu
 
 export const sanitizePricingSelections = (
   basicServices: BasicServicesState,
-  pricingRules: PricingRules,
+  servicePackage: PricingRules,
 ): PricingRules => {
   const discountEligible = new Set(getEligibleBasicServiceKeys(basicServices, 'discount'));
   const bonusEligible = new Set(getEligibleBasicServiceKeys(basicServices, 'bonus'));
 
   return {
-    ...pricingRules,
-    servicePackages: pricingRules.servicePackages.map((servicePackage) => {
-      if (servicePackage.kind === 'bonus') {
+    ...servicePackage,
+    servicePackages: servicePackage.servicePackages.map((servicePackageItem) => {
+      if (servicePackageItem.kind === 'bonus') {
         return {
-          ...servicePackage,
-          serviceKeys: servicePackage.serviceKeys.filter((key) => bonusEligible.has(key)),
-          bonusServiceKeys: servicePackage.bonusServiceKeys.filter((key) =>
+          ...servicePackageItem,
+          serviceKeys: servicePackageItem.serviceKeys.filter((key) => bonusEligible.has(key)),
+          bonusServiceKeys: servicePackageItem.bonusServiceKeys.filter((key) =>
             bonusEligible.has(key),
           ),
         };
       }
 
       return {
-        ...servicePackage,
-        baseServiceKeys: servicePackage.baseServiceKeys.filter((key) =>
+        ...servicePackageItem,
+        baseServiceKeys: servicePackageItem.baseServiceKeys.filter((key) =>
           discountEligible.has(key),
         ),
-        discountedServices: servicePackage.discountedServices.map((item) => ({
+        discountedServices: servicePackageItem.discountedServices.map((item) => ({
           ...item,
           serviceKeys: item.serviceKeys.filter((key) => discountEligible.has(key)),
         })),
-        serviceKeys: servicePackage.serviceKeys.filter((key) => discountEligible.has(key)),
+        serviceKeys: servicePackageItem.serviceKeys.filter((key) => discountEligible.has(key)),
       };
     }),
   };

@@ -89,59 +89,49 @@ const MediaPricesTableView = ({ basicServices, agencyDiscount }: MediaPricesTabl
       key: 'maxChars',
       title: 'Кол. зн. макс',
       render: (config: BasicServiceItemConfig) => (
-        <Text size="sm">
-          {formatCellValue(basicServices.values[config.id]?.maxChars)}
-        </Text>
+        <Text size="sm">{formatCellValue(config.maxChars)}</Text>
       ),
     },
     {
       key: 'headlineLimit',
       title: 'Заголовок',
       render: (config: BasicServiceItemConfig) => (
-        <Text size="sm">
-          {formatCellValue(basicServices.values[config.id]?.headlineLimit)}
-        </Text>
+        <Text size="sm">{formatCellValue(config.headlineLimit)}</Text>
       ),
     },
     {
       key: 'price',
       title: 'Цена, руб.',
       render: (config: BasicServiceItemConfig) => (
-        <Text size="sm">
-          {formatPrice(basicServices.values[config.id]?.price ?? '', agencyDiscount)}
-        </Text>
+        <Text size="sm">{formatPrice(config.price, agencyDiscount)}</Text>
       ),
     },
     {
       key: 'discount',
       headerStyle: { background: PACKAGE_KIND_HEADER_BG.discount },
       getCellStyle: (config: BasicServiceItemConfig) =>
-        basicServices.values[config.id]?.discount
-          ? { background: PACKAGE_KIND_HEADER_BG.discount }
-          : undefined,
+        config.discount ? { background: PACKAGE_KIND_HEADER_BG.discount } : undefined,
       title: (
         <Text span size="sm" fw={600} c={PACKAGE_KIND_COLORS.discount}>
           Скидка
         </Text>
       ),
       render: (config: BasicServiceItemConfig) => (
-        <Text size="sm">{basicServices.values[config.id]?.discount ? 'Да' : '—'}</Text>
+        <Text size="sm">{config.discount ? 'Да' : '—'}</Text>
       ),
     },
     {
       key: 'bonus',
       headerStyle: { background: PACKAGE_KIND_HEADER_BG.bonus },
       getCellStyle: (config: BasicServiceItemConfig) =>
-        basicServices.values[config.id]?.bonus
-          ? { background: PACKAGE_KIND_HEADER_BG.bonus }
-          : undefined,
+        config.bonus ? { background: PACKAGE_KIND_HEADER_BG.bonus } : undefined,
       title: (
         <Text span size="sm" fw={600} c={PACKAGE_KIND_COLORS.bonus}>
           Бонус
         </Text>
       ),
       render: (config: BasicServiceItemConfig) => (
-        <Text size="sm">{basicServices.values[config.id]?.bonus ? 'Да' : '—'}</Text>
+        <Text size="sm">{config.bonus ? 'Да' : '—'}</Text>
       ),
     },
   ];

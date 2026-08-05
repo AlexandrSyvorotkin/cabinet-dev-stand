@@ -20,7 +20,7 @@ import {
 
 type MediaPackagesViewProps = {
   basicServices: BasicServicesState;
-  pricingRules: PricingRules;
+  servicePackage: PricingRules;
 };
 
 const formatAmount = (value: number): string => value.toLocaleString('ru-RU');
@@ -164,7 +164,7 @@ const MediaPackageCardView = ({
   );
 };
 
-const MediaPackagesView = ({ basicServices, pricingRules }: MediaPackagesViewProps) => {
+const MediaPackagesView = ({ basicServices, servicePackage }: MediaPackagesViewProps) => {
   const serviceLabels = useMemo(
     () => getBasicServiceLabelsMap(basicServices.items),
     [basicServices.items],
@@ -173,12 +173,12 @@ const MediaPackagesView = ({ basicServices, pricingRules }: MediaPackagesViewPro
   const servicePrices = useMemo(
     () =>
       Object.fromEntries(
-        Object.entries(basicServices.values).map(([key, row]) => [key, parsePrice(row.price)]),
+        basicServices.items.map((item) => [item.id, parsePrice(item.price)]),
       ),
-    [basicServices.values],
+    [basicServices.items],
   );
 
-  if (pricingRules.servicePackages.length === 0) {
+  if (servicePackage.servicePackages.length === 0) {
     return (
       <Text c="dimmed" size="sm">
         Пакеты услуг не настроены.
@@ -188,12 +188,12 @@ const MediaPackagesView = ({ basicServices, pricingRules }: MediaPackagesViewPro
 
   return (
     <Stack gap="md">
-      {pricingRules.servicePackages.map((servicePackage, index) => (
+      {servicePackage.servicePackages.map((servicePackageItem, index) => (
         <MediaPackageCardView
-          key={servicePackage.id}
-          servicePackage={servicePackage}
+          key={servicePackageItem.id}
+          servicePackage={servicePackageItem}
           index={index}
-          agencyDiscount={pricingRules.agencyDiscount}
+          agencyDiscount={servicePackage.agencyDiscount}
           serviceLabels={serviceLabels}
           servicePrices={servicePrices}
         />

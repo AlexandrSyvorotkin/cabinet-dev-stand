@@ -14,7 +14,7 @@ const EditMediaPage = () => {
 
   const mediaItem = mediaItems.find((item) => item.id === Number(mediaId));
 
-  const { form, setCoverage, setBasicServices, setPricingRules } = useAddMediaForm(
+  const { form, setCoverage, setBasicServices, setServicePackage } = useAddMediaForm(
     mediaItem ? cloneFormValues(mediaItem.data) : undefined,
   );
 
@@ -76,7 +76,7 @@ const EditMediaPage = () => {
           form={form}
           onCoverageChange={setCoverage}
           onBasicServicesChange={setBasicServices}
-          onPricingRulesChange={setPricingRules}
+          onServicePackageChange={setServicePackage}
         />
 
         <Group justify="flex-end">

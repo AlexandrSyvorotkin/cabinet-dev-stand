@@ -10,7 +10,7 @@ import { ROUTES } from '@/shared/model';
 
 const AddMediaPage = () => {
   const { addMediaItem } = useOwnerMedia();
-  const { form, setCoverage, setBasicServices, setPricingRules } = useAddMediaForm();
+  const { form, setCoverage, setBasicServices, setServicePackage } = useAddMediaForm();
   const [createMediaPartner, { loading }] = useMutation(CREATE_MEDIA_PARTNER);
 
   const handleSubmit = form.onSubmit(async (values) => {
@@ -51,7 +51,7 @@ const AddMediaPage = () => {
           form={form}
           onCoverageChange={setCoverage}
           onBasicServicesChange={setBasicServices}
-          onPricingRulesChange={setPricingRules}
+          onServicePackageChange={setServicePackage}
         />
 
         <Group justify="flex-end">

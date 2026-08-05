@@ -1,6 +1,6 @@
 import { useMutation } from '@apollo/client/react';
 import { Button, Group, Stack, Title } from '@mantine/core';
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { CREATE_MEDIA_PARTNER } from '../api/mutation';
 import { toCreateMediaPartnerInput } from '../model/add-media-form';
 import { useOwnerMedia } from '../model/owner-media-context';
@@ -9,19 +9,16 @@ import { useAddMediaForm } from './use-add-media-form';
 import { ROUTES } from '@/shared/model';
 
 const AddMediaPage = () => {
+  const navigate = useNavigate();
   const { addMediaItem } = useOwnerMedia();
   const { form, setCoverage, setBasicServices, setServicePackage } = useAddMediaForm();
   const [createMediaPartner, { loading }] = useMutation(CREATE_MEDIA_PARTNER);
 
   const handleSubmit = form.onSubmit(async (values) => {
-    console.log(values)
-    // const input = toCreateMediaPartnerInput(values);
-    
-    // console.log('[CreateMedia] input:', input);
+    const input = toCreateMediaPartnerInput(values);
 
     try {
-      // const { data } = await createMediaPartner({ variables: { input } });
-      // console.log('[CreateMedia] result:', data);
+      await createMediaPartner({ variables: { input } });
       addMediaItem(values);
       // navigate({ to: ROUTES.OWNER_MEDIA });
     } catch (error) {

@@ -119,46 +119,8 @@ const MEDIA_SECTION_ID = {
   WEB: 2,
 } as const;
 
-const SOCIAL_PLATFORM_SECTION_ID: Partial<Record<string, number>> = {
-  telegram: MEDIA_SECTION_ID.TELEGRAM,
-};
-
-/** Поля формы без отдельного поля в API — уходят в description */
-const buildDescription = (values: AddMediaFormValues): string => {
-  const lines: string[] = [];
-
-  if (values.trafficReach.trim()) lines.push(`Охват: ${values.trafficReach.trim()}`);
-  if (values.coverage.trim()) lines.push(`Тип СМИ: ${values.coverage.trim()}`);
-  if (values.region.trim()) lines.push(`Регион/страна: ${values.region.trim()}`);
-  if (values.city.trim()) lines.push(`Город: ${values.city.trim()}`);
-  if (values.themes.length > 0) lines.push(`Темы: ${values.themes.join(', ')}`);
-
-  for (const item of getSocialItems(values.basicServices)) {
-    const socialRow = values.socialNetworks.find((entry) => entry.id === item.id);
-    if (!socialRow) continue;
-
-    const platformLabel = item.label.trim() || getSocialPlatformId(item) || item.id;
-    const socialLines: string[] = [];
-
-    if (socialRow.reachOrSubscribers.trim()) {
-      socialLines.push(`подписчики: ${socialRow.reachOrSubscribers.trim()}`);
-    }
-
-    if (socialRow.rknRegistered && socialRow.rknNumber.trim()) {
-      socialLines.push(`РКН: ${socialRow.rknNumber.trim()}`);
-    } else if (socialRow.rknApplicationSubmitted) {
-      socialLines.push('РКН: заявление подано');
-    } else if (socialRow.rknNotSubmitted) {
-      socialLines.push('РКН: не подано');
-    }
-
-    if (socialLines.length > 0) {
-      lines.push(`${platformLabel}: ${socialLines.join(', ')}`);
-    }
-  }
-
-  return lines.join('\n');
-};
+const getSocialMediaSectionId = (platformId: string | null): number =>
+  platformId === 'telegram' ? MEDIA_SECTION_ID.TELEGRAM : MEDIA_SECTION_ID.WEB;
 
 /** Скрин 2 — базовые услуги → CreateMediaOffersInput */
 const mapOffer = (
@@ -170,7 +132,7 @@ const mapOffer = (
 
   return {
     name: item.label.trim() || 'Услуга',
-    partner_section_id: item.placementTypeId ?? item.platformId ?? item.id,
+    partner_section_id: item.id,
     price: price > 0 ? price : null,
     price_with_discount:
       agencyDiscount.enabled && priceWithDiscount !== price ? priceWithDiscount : null,
@@ -194,14 +156,14 @@ const mapMediaSections = (values: AddMediaFormValues) => {
   }
 
   for (const item of getSocialItems(basicServices)) {
-    const platformId = getSocialPlatformId(item);
-    const sectionId = platformId ? SOCIAL_PLATFORM_SECTION_ID[platformId] : undefined;
     const url = values.socialNetworks.find((entry) => entry.id === item.id)?.link.trim() ?? '';
 
-    if (!sectionId || !url) continue;
+    if (!url) continue;
+
+    const platformId = getSocialPlatformId(item);
 
     sections.push({
-      media_section_id: sectionId,
+      media_section_id: getSocialMediaSectionId(platformId),
       title: item.label.trim() || platformId || 'Соцсеть',
       url,
       offers: [mapOffer(item, servicePackage.agencyDiscount)],
@@ -217,23 +179,41 @@ const mapMediaPromotions = (
 ): CreateMediaPromotionInput[] | undefined => {
   const promotions = servicePackages
     .map((servicePackage): CreateMediaPromotionInput | null => {
+      const type = servicePackage.kind === 'bonus' ? 'BONUS' : 'DISCOUNT';
+
+      if (servicePackage.kind === 'bonus') {
+        if (servicePackage.serviceKeys.length === 0 || servicePackage.bonusServiceKeys.length === 0) {
+          return null;
+        }
+
+        return {
+          type,
+          logic: 'ALL',
+          conditions: servicePackage.serviceKeys.map((offerId) => ({ offer_id: offerId })),
+          targets: servicePackage.bonusServiceKeys.map((offerId) => ({
+            offer_id: offerId,
+            value: 100,
+          })),
+        };
+      }
+
       if (servicePackage.baseServiceKeys.length === 0) return null;
 
-      const type = servicePackage.kind === 'bonus' ? 'BONUS' : 'DISCOUNT';
-      const conditions = servicePackage.baseServiceKeys.map((offerId) => ({ offer_id: offerId }));
-      const targets =
-        servicePackage.kind === 'bonus'
-          ? servicePackage.bonusServiceKeys.map((offerId) => ({ offer_id: offerId, value: 100 }))
-          : servicePackage.discountedServices.flatMap((discountedItem) =>
-              discountedItem.serviceKeys.map((offerId) => ({
-                offer_id: offerId,
-                value: discountedItem.percent,
-              })),
-            );
+      const targets = servicePackage.discountedServices.flatMap((discountedItem) =>
+        discountedItem.serviceKeys.map((offerId) => ({
+          offer_id: offerId,
+          value: discountedItem.percent,
+        })),
+      );
 
       if (targets.length === 0) return null;
 
-      return { type, logic: 'ALL', conditions, targets };
+      return {
+        type,
+        logic: 'ALL',
+        conditions: servicePackage.baseServiceKeys.map((offerId) => ({ offer_id: offerId })),
+        targets,
+      };
     })
     .filter((promotion): promotion is CreateMediaPromotionInput => promotion != null);
 
@@ -242,17 +222,12 @@ const mapMediaPromotions = (
 
 export const toCreateMediaPartnerInput = (
   values: AddMediaFormValues,
-): CreateMediaPartnerInput => {
-  const userDescription = values.description.trim();
-  const metadataDescription = buildDescription(values);
-
-  return {
-    name: values.name.trim(),
-    description: userDescription || metadataDescription,
-    media_sections: mapMediaSections(values),
-    media_promotions: mapMediaPromotions(values.servicePackage.servicePackages),
-  };
-};
+): CreateMediaPartnerInput => ({
+  name: values.name.trim(),
+  description: values.description.trim(),
+  media_sections: mapMediaSections(values),
+  media_promotions: mapMediaPromotions(values.servicePackage.servicePackages),
+});
 
 export const serializeCreateMediaPayload = (values: AddMediaFormValues): CreateMediaPayload => {
   const { basicServices, ...rest } = values;

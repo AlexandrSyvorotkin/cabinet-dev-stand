@@ -53,6 +53,7 @@ const getDefaultRouteForRole = (role: UserRole): string => {
     case USER_ROLES.OWNER:
       return ROUTES.OWNER;
     case USER_ROLES.MODERATOR:
+    case USER_ROLES.MAIN_MODERATOR:
       return ROUTES.MODERATOR;
   }
 };

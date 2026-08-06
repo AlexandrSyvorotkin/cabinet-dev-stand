@@ -9,4 +9,10 @@ export const ROUTES = {
   OWNER_MEDIA_DETAIL: '/owner/media/$mediaId',
   OWNER_MEDIA_EDIT: '/owner/media/$mediaId/edit',
   MODERATOR: '/moderator',
+  MODERATOR_MEDIA: '/moderator/media',
+  MODERATOR_ORDERS: '/moderator/orders',
+  MODERATOR_USERS: '/moderator/users',
+  MODERATOR_REJECTED: '/moderator/rejected',
+  MODERATOR_SETTINGS: '/moderator/settings',
+  MODERATOR_HELP: '/moderator/help',
 } as const;

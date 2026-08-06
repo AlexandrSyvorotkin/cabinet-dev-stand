@@ -1,5 +1,14 @@
 import { homeRoute } from './home-route';
-import { moderatorRoute } from './moderator-route';
+import {
+  moderatorHelpRoute,
+  moderatorOrdersRoute,
+  moderatorRejectedRoute,
+  moderatorSettingsRoute,
+  moderatorUsersRoute,
+} from './moderator-section-routes';
+import { moderatorIndexRoute } from './moderator-index-route';
+import { moderatorLayoutRoute } from './moderator-layout-route';
+import { moderatorMediaRoute } from './moderator-media-route';
 import { ownerIndexRoute } from './owner-index-route';
 import { ownerLayoutRoute } from './owner-layout-route';
 import { ownerMediaAddRoute } from './owner-media-add-route';
@@ -17,13 +26,28 @@ export const appRoutes = [
     ownerMediaDetailRoute,
     ownerMediaEditRoute,
   ]),
-  moderatorRoute,
+  moderatorLayoutRoute.addChildren([
+    moderatorIndexRoute,
+    moderatorMediaRoute,
+    moderatorOrdersRoute,
+    moderatorUsersRoute,
+    moderatorRejectedRoute,
+    moderatorSettingsRoute,
+    moderatorHelpRoute,
+  ]),
   profileRoute,
 ];
 
 export {
   homeRoute,
-  moderatorRoute,
+  moderatorHelpRoute,
+  moderatorIndexRoute,
+  moderatorLayoutRoute,
+  moderatorMediaRoute,
+  moderatorOrdersRoute,
+  moderatorRejectedRoute,
+  moderatorSettingsRoute,
+  moderatorUsersRoute,
   ownerIndexRoute,
   ownerLayoutRoute,
   ownerMediaAddRoute,

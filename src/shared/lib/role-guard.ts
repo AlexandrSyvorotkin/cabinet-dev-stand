@@ -6,7 +6,9 @@ import {
   type UserRole,
 } from '@/shared/model';
 
-const createRoleGuard = (allowedRole: UserRole) => {
+const createRoleGuard = (allowedRoles: UserRole | UserRole[]) => {
+  const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+
   return () => {
     const session = getSession();
 
@@ -14,7 +16,7 @@ const createRoleGuard = (allowedRole: UserRole) => {
       throw redirect({ to: ROUTES.AUTH });
     }
 
-    if (session.user.role !== allowedRole) {
+    if (!roles.includes(session.user.role)) {
       throw redirect({ to: getDefaultRouteForRole(session.user.role) });
     }
   };

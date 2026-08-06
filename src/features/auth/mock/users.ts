@@ -25,6 +25,13 @@ const MOCK_USERS: MockUser[] = [
     role: USER_ROLES.MODERATOR,
     password: MOCK_PASSWORD,
   },
+  {
+    id: 'main-moderator-1',
+    email: 'main-moderator@media.ru',
+    name: 'Анна Смирнова',
+    role: USER_ROLES.MAIN_MODERATOR,
+    password: MOCK_PASSWORD,
+  },
 ];
 
 export { MOCK_PASSWORD, MOCK_USERS };

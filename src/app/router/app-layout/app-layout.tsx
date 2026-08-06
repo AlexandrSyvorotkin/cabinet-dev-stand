@@ -26,11 +26,6 @@ const NAV_ITEMS: NavItem[] = [
     to: ROUTES.OWNER_MEDIA,
     roles: [USER_ROLES.OWNER],
   },
-  {
-    label: 'Кабинет модератора',
-    to: ROUTES.MODERATOR,
-    roles: [USER_ROLES.MODERATOR],
-  },
 ];
 
 const getInitials = (name: string): string => {
